@@ -101,6 +101,10 @@ static QMap<class QString, QSharedPointer<ValueHandler>>
     OPTION("saveAfterCopy"               ,Bool               ( false         )),
     OPTION("savePath"                    ,ExistingDir        (               )),
     OPTION("savePathFixed"               ,Bool               ( false         )),
+    OPTION("savePathLocation1"           ,String             ( ""            )),
+    OPTION("savePathLocation2"           ,String             ( ""            )),
+    OPTION("savePathLocation3"           ,String             ( ""            )),
+    OPTION("showPostUploadDialog"        ,Bool               ( false         )),
     OPTION("saveAsFileExtension"         ,SaveFileExtension  (               )),
     OPTION("saveLastRegion"              ,Bool               ( false         )),
     OPTION("uploadHistoryMax"            ,LowerBoundedInt    ( 0, 25         )),
@@ -134,7 +138,9 @@ static QMap<class QString, QSharedPointer<ValueHandler>>
     OPTION("uploadClientSecret"          ,String             ( "313baf0c7b4d3ff" )),
     OPTION("showSelectionGeometry"       , BoundedInt        ( 0, 5, 4       )),
     OPTION("showSelectionGeometryHideTime", LowerBoundedInt  ( 0, 3000       )),
-    OPTION("jpegQuality"                 , BoundedInt        ( 0,100,75      )),
+    // Defaults to 100 (was 75) so JPEG saves/uploads are full quality
+    // out of the box; users can still lower it in General settings.
+    OPTION("jpegQuality"                 , BoundedInt        ( 0,100,100     )),
     OPTION("reverseArrow"                ,Bool               ( false         )),
     OPTION("arrowStyle"                  ,BoundedInt         ( 0, 1, 0       )),
     OPTION("insecurePixelate"            ,Bool               ( false         )),
@@ -171,7 +177,7 @@ static QMap<QString, QSharedPointer<KeySequence>> recognizedShortcuts = {
     SHORTCUT("TYPE_EXIT"                ,   "Ctrl+Q"                ),
     SHORTCUT("TYPE_CANCEL"              ,   "Ctrl+Backspace"        ),
 #ifdef ENABLE_IMGUR
-    SHORTCUT("TYPE_IMAGEUPLOADER"       ,                           ),
+    SHORTCUT("TYPE_IMAGEUPLOADER"       ,   "Ctrl+D"                ),
 #endif
 #if !defined(Q_OS_MACOS)
     SHORTCUT("TYPE_OPEN_APP"            ,   "Ctrl+O"                ),
@@ -210,6 +216,9 @@ static QMap<QString, QSharedPointer<KeySequence>> recognizedShortcuts = {
     SHORTCUT("TYPE_SIZEINCREASE"        ,                           ),
     SHORTCUT("TYPE_SIZEDECREASE"        ,                           ),
     SHORTCUT("TYPE_CIRCLECOUNT"         ,                           ),
+    SHORTCUT("TYPE_SAVE_LOCATION_1"     ,                           ),
+    SHORTCUT("TYPE_SAVE_LOCATION_2"     ,                           ),
+    SHORTCUT("TYPE_SAVE_LOCATION_3"     ,                           ),
 };
 // clang-format on
 

@@ -20,6 +20,7 @@
 #include "utils/filenamehandler.h"
 #include "utils/pathinfo.h"
 #include "utils/valuehandler.h"
+#include "utils/wheelfocusguard.h"
 
 #if !(defined(Q_OS_MACOS) || defined(Q_OS_WIN))
 #include "core/flameshotdbusadapter.h"
@@ -29,6 +30,7 @@
 
 #include <QApplication>
 #include <QDir>
+#include <QFile>
 #include <QLibraryInfo>
 #include <QNetworkProxyFactory>
 #include <QSharedMemory>
@@ -172,6 +174,18 @@ void configureTranslation(QTranslator& translator, QTranslator& qtTranslator)
     qApp->installTranslator(&qtTranslator);
 }
 
+// Applies a user-swappable Qt stylesheet, if one is present, so the whole
+// app (not just the capture toolbar's uiColor/contrastUiColor) can be
+// reskinned by dropping a .qss file at this path - see flameshot-theme.
+void applyCustomStyleSheet()
+{
+    QFile file(QDir::homePath() +
+               "/.local/share/flameshot-theme/current.qss");
+    if (file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        qApp->setStyleSheet(QString::fromUtf8(file.readAll()));
+    }
+}
+
 void configureApp(bool gui, QTranslator& translator, QTranslator& qtTranslator)
 {
     if (gui) {
@@ -180,6 +194,12 @@ void configureApp(bool gui, QTranslator& translator, QTranslator& qtTranslator)
 #else
         QApplication::setStyle(new StyleOverride);
 #endif
+        qApp->installEventFilter(new WheelFocusGuard(qApp));
+        // Deferred to the next event loop iteration: platform theme
+        // integrations (e.g. qt6ct) inject their own app-wide stylesheet
+        // shortly after startup, which would otherwise clobber this one.
+        // Running after that means ours applies last and wins.
+        QTimer::singleShot(0, qApp, &applyCustomStyleSheet);
     }
 
     auto app = QCoreApplication::instance();
