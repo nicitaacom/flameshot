@@ -952,8 +952,8 @@ void GeneralConf::initShowSelectionGeometry()
     m_xywhTimeout->setToolTip(
       tr("Milliseconds before geometry display hides; 0 means do not hide"));
     m_xywhTimeout->setValue(timeout);
-    tobox->addWidget(m_xywhTimeout);
     tobox->addWidget(new QLabel(tr("Set geometry display timeout (ms)")));
+    tobox->addWidget(m_xywhTimeout);
     vboxLayout->addLayout(tobox);
     connect(m_xywhTimeout,
             static_cast<void (QSpinBox::*)(int)>(&QSpinBox::valueChanged),
@@ -1001,8 +1001,8 @@ void GeneralConf::initJpegQuality()
     m_jpegQuality->setToolTip(tr("Quality range of 0-100; Higher number is "
                                  "better quality and larger file size"));
     m_jpegQuality->setValue(quality);
-    tobox->addWidget(m_jpegQuality);
     tobox->addWidget(new QLabel(tr("JPEG Quality")));
+    tobox->addWidget(m_jpegQuality);
 
     m_scrollAreaLayout->addLayout(tobox);
     connect(m_jpegQuality,
