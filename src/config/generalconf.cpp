@@ -69,36 +69,45 @@ GeneralConf::GeneralConf(QWidget* parent)
         m_scrollAreaLayout = outer;
         group->activate();
     }
-    initSaveAfterCopy();
-    initSaveLocations();
-    initCopyPathAfterSave();
-    initAntialiasingPinZoom();
-    initUndoLimit();
-    initInsecurePixelate();
+    {
+        QVBoxLayout* outer = m_scrollAreaLayout;
+        QVBoxLayout* group = pushGroupBox(tr("Options"));
+        m_scrollAreaLayout = group;
+        initCopyPathAfterSave();
+        initAntialiasingPinZoom();
+        initInsecurePixelate();
 #if !defined(Q_OS_MACOS)
-    initCaptureActiveMonitor();
+        initCaptureActiveMonitor();
 #endif
 #if defined(Q_OS_MACOS)
-    initUseNativeFullscreen();
+        initUseNativeFullscreen();
 #endif
 #if defined(Q_OS_UNIX) && !defined(Q_OS_MACOS)
-    initUseX11LegacyScreenshot();
+        initUseX11LegacyScreenshot();
 #endif
 #ifdef ENABLE_IMGUR
-    initCopyAndCloseAfterUpload();
-    initUploadWithoutConfirmation();
-    initHistoryConfirmationToDelete();
+        initCopyAndCloseAfterUpload();
+        initUploadWithoutConfirmation();
+        initHistoryConfirmationToDelete();
+#endif
+        initPredefinedColorPaletteLarge();
+        initShowMagnifier();
+        initSquareMagnifier();
+        initReverseArrow();
+        m_scrollAreaLayout = outer;
+        group->activate();
+    }
+    initSaveAfterCopy();
+    initSaveLocations();
+    initUndoLimit();
+#ifdef ENABLE_IMGUR
     initUploadClientSecret();
 #endif
-    initPredefinedColorPaletteLarge();
     initShowSelectionGeometry();
 
     m_scrollAreaLayout->addStretch();
 
-    initShowMagnifier();
-    initSquareMagnifier();
     initJpegQuality();
-    initReverseArrow();
     // this has to be at the end
     initConfigButtons();
     updateComponents();
