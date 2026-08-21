@@ -18,7 +18,6 @@
 #include <QSpinBox>
 #include <QStandardPaths>
 #include <QStringDecoder>
-#include <QStyle>
 #include <QVBoxLayout>
 
 GeneralConf::GeneralConf(QWidget* parent)
@@ -49,11 +48,6 @@ GeneralConf::GeneralConf(QWidget* parent)
         // child.
         group->activate();
     }
-    // Where screenshots end up is core to every capture, so the save
-    // settings (which also carry JPEG Quality now, folded into the Save
-    // Path box) rank right after Startup, above general behavior toggles.
-    initSaveAfterCopy();
-    initSaveLocations();
     {
         QVBoxLayout* outer = m_scrollAreaLayout;
         QVBoxLayout* group = pushGroupBox(tr("Notifications & Behavior"));
@@ -74,6 +68,11 @@ GeneralConf::GeneralConf(QWidget* parent)
         m_scrollAreaLayout = outer;
         group->activate();
     }
+    // Where screenshots end up is core to every capture, so the save
+    // settings (which also carry JPEG Quality now, folded into the Save
+    // Path box) rank above the general Options toggles below.
+    initSaveAfterCopy();
+    initSaveLocations();
     {
         QVBoxLayout* outer = m_scrollAreaLayout;
         QVBoxLayout* group = pushGroupBox(tr("Options"));
@@ -571,21 +570,21 @@ void GeneralConf::initCopyAndCloseAfterUpload()
 
 void GeneralConf::initSaveAfterCopy()
 {
+    m_saveAfterCopy = new QCheckBox(tr("Save image after copy"), this);
+    m_saveAfterCopy->setToolTip(
+      tr("After copying the screenshot, save it to a file as well"));
+    m_scrollAreaLayout->addWidget(m_saveAfterCopy);
+    connect(m_saveAfterCopy,
+            &QCheckBox::clicked,
+            this,
+            &GeneralConf::saveAfterCopyChanged);
+
     auto* box = new QGroupBox(tr("Save Path"));
     box->setFlat(true);
     m_scrollAreaLayout->addWidget(box);
 
     auto* vboxLayout = new QVBoxLayout();
     box->setLayout(vboxLayout);
-
-    m_saveAfterCopy = new QCheckBox(tr("Save image after copy"), this);
-    m_saveAfterCopy->setToolTip(
-      tr("After copying the screenshot, save it to a file as well"));
-    vboxLayout->addWidget(m_saveAfterCopy);
-    connect(m_saveAfterCopy,
-            &QCheckBox::clicked,
-            this,
-            &GeneralConf::saveAfterCopyChanged);
 
     auto* pathLayout = new QHBoxLayout();
 
@@ -952,8 +951,8 @@ void GeneralConf::initShowSelectionGeometry()
     m_xywhTimeout->setToolTip(
       tr("Milliseconds before geometry display hides; 0 means do not hide"));
     m_xywhTimeout->setValue(timeout);
-    tobox->addWidget(new QLabel(tr("Set geometry display timeout (ms)")));
     tobox->addWidget(m_xywhTimeout);
+    tobox->addWidget(new QLabel(tr("Set geometry display timeout (ms)")));
     vboxLayout->addLayout(tobox);
     connect(m_xywhTimeout,
             static_cast<void (QSpinBox::*)(int)>(&QSpinBox::valueChanged),
@@ -1001,8 +1000,8 @@ void GeneralConf::initJpegQuality()
     m_jpegQuality->setToolTip(tr("Quality range of 0-100; Higher number is "
                                  "better quality and larger file size"));
     m_jpegQuality->setValue(quality);
-    tobox->addWidget(new QLabel(tr("JPEG Quality")));
     tobox->addWidget(m_jpegQuality);
+    tobox->addWidget(new QLabel(tr("JPEG Quality")));
 
     m_scrollAreaLayout->addLayout(tobox);
     connect(m_jpegQuality,
@@ -1023,20 +1022,11 @@ void GeneralConf::initReverseArrow()
 
 void GeneralConf::initInsecurePixelate()
 {
-    m_insecurePixelate = new QCheckBox(tr("Enable opacity blur"), this);
+    m_insecurePixelate = new QCheckBox(tr("Insecure Pixelate"), this);
+    m_insecurePixelate->setToolTip(
+      tr("Draw the pixelation effect in an insecure but more asethetic way."));
     m_insecurePixelate->setChecked(ConfigHandler().insecurePixelate());
-
-    auto* infoIcon = new QLabel(this);
-    infoIcon->setPixmap(
-      style()->standardIcon(QStyle::SP_MessageBoxInformation).pixmap(16, 16));
-    infoIcon->setToolTip(
-      QStringLiteral("<img src=':/img/app/blur-diff.png' width='400'>"));
-
-    auto* row = new QHBoxLayout();
-    row->addWidget(m_insecurePixelate);
-    row->addWidget(infoIcon);
-    row->addStretch();
-    m_scrollAreaLayout->addLayout(row);
+    m_scrollAreaLayout->addWidget(m_insecurePixelate);
 
     connect(m_insecurePixelate,
             &QCheckBox::clicked,
