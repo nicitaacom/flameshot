@@ -16,14 +16,7 @@ bool WheelFocusGuard::eventFilter(QObject* watched, QEvent* event)
           qobject_cast<QComboBox*>(widget) ||
           qobject_cast<QAbstractSpinBox*>(widget);
         if (isScrollSensitive && !widget->hasFocus()) {
-            // Deliberately just swallow the event rather than trying to
-            // forward it to the enclosing scroll area: Qt's "ignored wheel
-            // event walks up to the parent" behavior only fires for real,
-            // spontaneous hardware events, so manually resending it here
-            // (tried and reverted - see git history) ends up re-entering
-            // Qt's own event machinery in ways that misbehave. Simply not
-            // reacting while unfocused is the actual requirement; clicking
-            // into the widget first still lets the wheel change its value.
+            event->ignore();
             return true;
         }
     }
