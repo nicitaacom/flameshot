@@ -15,6 +15,7 @@
 #include <QMessageBox>
 #include <QPushButton>
 #include <QSettings>
+#include <QSignalBlocker>
 #include <QSpinBox>
 #include <QStandardPaths>
 #include <QStyle>
@@ -160,6 +161,19 @@ void GeneralConf::_updateComponents(bool allowEmptySavePath)
     if (allowEmptySavePath || !config.savePath().isEmpty()) {
         m_savePath->setText(config.savePath());
     }
+    const int geometryLocation = config.showSelectionGeometry();
+    int geometryIndex = m_selectGeometryLocation->findData(geometryLocation);
+    if (geometryIndex < 0) {
+        geometryIndex = m_selectGeometryLocation->findData(xywh_bottom_right);
+    }
+    {
+        const QSignalBlocker blockGeometryLocation(m_selectGeometryLocation);
+        m_selectGeometryLocation->setCurrentIndex(geometryIndex);
+    }
+    const bool showGeometry = config.showSelectionGeometryEnabled() &&
+                              geometryLocation != xywh_none;
+    m_showSelectionGeometry->setChecked(showGeometry);
+    m_selectGeometryLocation->setEnabled(showGeometry);
     setSaveLocationCount(config.savePathLocationCount());
     for (int i = 0; i < m_saveLocationCount; ++i) {
         m_saveLocations[i]->setText(config.savePathLocation(i + 1));
@@ -947,16 +961,16 @@ void GeneralConf::initShowSelectionGeometry()
     auto* vboxLayout = new QVBoxLayout();
     box->setLayout(vboxLayout);
 
+    m_showSelectionGeometry = new QCheckBox(tr("Show resolution"), this);
     auto* infoIcon = new QLabel(this);
     infoIcon->setPixmap(
       style()->standardIcon(QStyle::SP_MessageBoxInformation).pixmap(16, 16));
     infoIcon->setToolTip(
-      tr("Shows the selected area's width and height. Select None to hide "
-         "the dimensions."));
+      tr("Show or hide the selected area's width and height in the capture "
+         "window."));
     auto* infoRow = new QHBoxLayout();
+    infoRow->addWidget(m_showSelectionGeometry);
     infoRow->addWidget(infoIcon);
-    infoRow->addWidget(new QLabel(
-      tr("Choose where the selection dimensions appear."), this));
     infoRow->addStretch();
     vboxLayout->addLayout(infoRow);
 
@@ -980,7 +994,7 @@ void GeneralConf::initShowSelectionGeometry()
     selGeoLayout->addWidget(new QLabel(tr("Display Location")));
     m_selectGeometryLocation = new QComboBox(this);
     m_selectGeometryLocation->setToolTip(
-      tr("Select None to hide the selection dimensions."));
+      tr("Choose where the selection dimensions appear."));
 
     m_selectGeometryLocation->addItem(tr("None"), GeneralConf::xywh_none);
     m_selectGeometryLocation->addItem(tr("Top Left"),
@@ -997,12 +1011,21 @@ void GeneralConf::initShowSelectionGeometry()
     int pos = ConfigHandler().value("showSelectionGeometry").toInt();
     m_selectGeometryLocation->setCurrentIndex(
       m_selectGeometryLocation->findData(pos));
+    const bool showGeometry =
+      ConfigHandler().showSelectionGeometryEnabled() && pos != xywh_none;
+    m_showSelectionGeometry->setChecked(showGeometry);
+    m_selectGeometryLocation->setEnabled(showGeometry);
 
     connect(
       m_selectGeometryLocation,
       static_cast<void (QComboBox::*)(int)>(&QComboBox::currentIndexChanged),
       this,
       &GeneralConf::setGeometryLocation);
+
+    connect(m_showSelectionGeometry,
+            &QCheckBox::clicked,
+            this,
+            &GeneralConf::setSelectionGeometryEnabled);
 
     selGeoLayout->addWidget(m_selectGeometryLocation);
     vboxLayout->addLayout(selGeoLayout);
@@ -1074,8 +1097,26 @@ void GeneralConf::setJpegQuality(int v)
 
 void GeneralConf::setGeometryLocation(int index)
 {
-    ConfigHandler().setValue("showSelectionGeometry",
-                             m_selectGeometryLocation->itemData(index));
+    ConfigHandler config;
+    const int location =
+      m_selectGeometryLocation->itemData(index).toInt();
+    config.setShowSelectionGeometry(location);
+    const bool showGeometry = location != xywh_none;
+    m_showSelectionGeometry->setChecked(showGeometry);
+    m_selectGeometryLocation->setEnabled(showGeometry);
+    config.setShowSelectionGeometryEnabled(showGeometry);
+}
+
+void GeneralConf::setSelectionGeometryEnabled(bool enabled)
+{
+    ConfigHandler config;
+    if (enabled &&
+        m_selectGeometryLocation->currentData().toInt() == xywh_none) {
+        m_selectGeometryLocation->setCurrentIndex(
+          m_selectGeometryLocation->findData(xywh_bottom_right));
+    }
+    m_selectGeometryLocation->setEnabled(enabled);
+    config.setShowSelectionGeometryEnabled(enabled);
 }
 
 void GeneralConf::togglePathFixed()
