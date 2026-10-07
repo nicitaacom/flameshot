@@ -103,4 +103,11 @@
         <file>img/material/white/apps.svg</file>
         <file>img/material/white/image.svg</file>
     </qresource>
+    <qresource prefix="/themes">
+        <file alias="crazy-mechanics.qss">../contrib/flameshot-theme/crazy-mechanics.qss</file>
+        <file alias="green.qss">../contrib/flameshot-theme/green.qss</file>
+        <file alias="halloween.qss">../contrib/flameshot-theme/halloween.qss</file>
+        <file alias="new-year.qss">../contrib/flameshot-theme/new-year.qss</file>
+        <file alias="check.svg">../contrib/flameshot-theme/assets/check.svg</file>
+    </qresource>
 </RCC>

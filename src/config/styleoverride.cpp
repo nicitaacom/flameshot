@@ -40,11 +40,12 @@ void watchCustomStyleSheet()
     watcher->setObjectName("customThemeWatcher");
     watcher->addPath(directory);
     const auto apply = [watcher, path]() {
-        QFile file(path);
+        const bool custom = QFile::exists(path);
+        QFile file(custom ? path : QStringLiteral(":/themes/crazy-mechanics.qss"));
         if (file.open(QIODevice::ReadOnly | QIODevice::Text)) {
             qApp->setStyleSheet(QString::fromUtf8(file.readAll()));
             // Atomic replacements remove the old file from the watch list.
-            if (!watcher->files().contains(path)) {
+            if (custom && !watcher->files().contains(path)) {
                 watcher->addPath(path);
             }
         }

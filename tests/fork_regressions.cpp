@@ -482,8 +482,12 @@ static void customTheme()
         target.write(source.readAll());
         require(target.commit(), "Stylesheet replaced atomically");
     };
-    install("crazy-mechanics");
     watchCustomStyleSheet();
+    require(qApp->styleSheet().contains("#c05cff") &&
+              qApp->styleSheet().contains(":/themes/check.svg"),
+            "Fresh installs include the custom theme and portable checkbox artwork");
+    install("crazy-mechanics");
+    QTest::qWait(100);
     require(qApp->styleSheet().contains("#c05cff"),
             "Selected Crazy Mechanics theme is applied app-wide");
     QLabel label("Themed label");
@@ -499,8 +503,12 @@ static void customTheme()
     QTest::qWait(150);
     require(qApp->styleSheet().contains("#c05cff"),
             "Watcher survives repeated atomic stylesheet replacements");
+    require(QFile::remove(directory + "/current.qss"), "Custom stylesheet removed");
+    QTest::qWait(150);
+    require(qApp->styleSheet().contains("#c05cff"),
+            "Removing a custom stylesheet restores the bundled fork theme");
     checkImportedProfile();
-    qInfo("PASS: historical QSS styling and live theme changes preserve the active profile");
+    qInfo("PASS: bundled QSS, portable artwork and live theme changes preserve the active profile");
 }
 
 int main(int argc, char** argv)

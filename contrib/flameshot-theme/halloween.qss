@@ -129,7 +129,7 @@ QCheckBox::indicator {
 QCheckBox::indicator:checked {
     background-color: #ff7819;
     border-color: #ff9a4d;
-    image: url(/home/kali/.local/share/flameshot-theme/assets/check.svg);
+    image: url(:/themes/check.svg);
 }
 QCheckBox::indicator:hover {
     border-color: #ff7819;

@@ -6,7 +6,7 @@ From this checkout, run:
 python3 tests/run_fork_regressions.py build
 ```
 
-Requires a configured Ninja build, Qt6Test, pkg-config, Xvfb, and dbus-run-session.
+Requires a configured CMake build (Ninja or Unix Makefiles), Qt6Test, pkg-config, Xvfb, and dbus-run-session.
 The runner builds the application and links the regression harness against its
 compiled objects, replacing the CLI main function. It uses a separate display,
 session bus, configuration directory, and temporary save folders. It does not
