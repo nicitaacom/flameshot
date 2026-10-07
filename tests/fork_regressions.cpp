@@ -4,6 +4,10 @@
 #include "config/styleoverride.h"
 #include "config/shortcutswidget.h"
 #include "core/flameshotdaemon.h"
+#include "tools/toolfactory.h"
+#ifdef ENABLE_IMGUR
+#include "widgets/imguploaddialog.h"
+#endif
 #include "utils/confighandler.h"
 #include "widgets/capture/capturewidget.h"
 
@@ -396,6 +400,74 @@ static void importedProfilePersistence()
     qInfo("PASS: import refresh, stale writes, midnight, process restart and invalid import rollback");
 }
 
+static void uploadShortcut()
+{
+#ifdef ENABLE_IMGUR
+    ConfigHandler config;
+    // The imported profile omitted this shortcut, so the fork default applies.
+    require(QKeySequence(config.shortcut("TYPE_IMAGEUPLOADER")) == QKeySequence("Ctrl+D"),
+            "Ctrl+D is the default upload shortcut");
+    CaptureRequest request(CaptureRequest::GRAPHICAL_MODE);
+    request.setInitialSelection(QRect(200, 100, 300, 200));
+    auto* capture = new CaptureWidget(request);
+    capture->show();
+    capture->activateWindow();
+    capture->setFocus();
+    QTest::qWait(50);
+    CaptureTool* upload = nullptr;
+    for (auto* button : capture->findChildren<CaptureToolButton*>()) {
+        if (button->tool()->type() == CaptureTool::TYPE_IMAGEUPLOADER) {
+            upload = button->tool();
+        }
+    }
+    require(upload != nullptr, "Uploader tool is included in the capture");
+    // Observe the real key binding without exporting a desktop image online.
+    QObject::disconnect(upload, &CaptureTool::requestAction, capture, nullptr);
+    QSignalSpy actions(upload, &CaptureTool::requestAction);
+    QTest::keyClick(capture, Qt::Key_D, Qt::ControlModifier);
+    require(actions.size() == 3 &&
+              actions.last().first().toInt() == CaptureTool::REQ_CLOSE_GUI,
+            "Pressing Ctrl+D invokes the uploader action");
+    CaptureContext context;
+    context.request = request;
+    upload->pressed(context);
+    require(context.request.tasks() & CaptureRequest::UPLOAD,
+            "Uploader action schedules the selected capture for upload");
+    capture->close();
+    QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
+    ShortcutsWidget shortcuts;
+    auto* table = shortcuts.findChild<QTableWidget*>();
+    bool listed = false;
+    for (int row = 0; row < table->rowCount(); ++row) {
+        listed |= table->item(row, 0)->text() == "Upload the selection" &&
+                  QKeySequence(table->item(row, 1)->text()) == QKeySequence("Ctrl+D");
+    }
+    require(listed, "Ctrl+D upload appears in the Shortcuts settings");
+    config.setUploadWithoutConfirmation(false);
+    QPointer<CaptureWidget> normalCapture = new CaptureWidget(request);
+    normalCapture->show();
+    normalCapture->activateWindow();
+    normalCapture->setFocus();
+    QTest::qWait(50);
+    bool confirmationOpened = false;
+    QTimer::singleShot(50, qApp, [&confirmationOpened]() {
+        for (auto* widget : QApplication::topLevelWidgets()) {
+            if (auto* dialog = qobject_cast<ImgUploadDialog*>(widget)) {
+                confirmationOpened = dialog->isVisible();
+                dialog->reject();
+            }
+        }
+    });
+    QTest::keyClick(normalCapture, Qt::Key_D, Qt::ControlModifier);
+    QTest::qWait(150);
+    require(normalCapture.isNull() && confirmationOpened,
+            "Ctrl+D completes the capture and opens the real upload confirmation");
+    qInfo("PASS: Ctrl+D invokes the uploader, schedules the selection and opens upload confirmation");
+#else
+    require(false, "This fork needs ENABLE_IMGUR=ON for Ctrl+D upload");
+#endif
+}
+
 static void customTheme()
 {
     const QString directory =
@@ -449,6 +521,7 @@ int main(int argc, char** argv)
     saveLocations();
     doubleClicks();
     importedProfilePersistence();
+    uploadShortcut();
     customTheme();
     return 0;
 }
