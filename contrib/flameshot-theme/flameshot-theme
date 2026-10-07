@@ -9,8 +9,15 @@
 #   flameshot-theme --revert    back to the default (crazy-mechanics)
 set -euo pipefail
 
-THEME_DIR="$HOME/.local/share/flameshot-theme"
-INI="$HOME/.config/flameshot/flameshot.ini"
+THEME_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/flameshot-theme"
+INI="${XDG_CONFIG_HOME:-$HOME/.config}/flameshot/flameshot.ini"
+
+# Scheduled updates may change the app skin, but never an imported profile.
+STYLESHEET_ONLY=false
+if [ "${1:-}" = "--stylesheet-only" ]; then
+    STYLESHEET_ONLY=true
+    shift
+fi
 
 if [ "${1:-}" = "--list" ]; then
     ls "$THEME_DIR"/*.conf 2>/dev/null | xargs -n1 basename | sed 's/\.conf$//'
@@ -36,6 +43,7 @@ else
     rm -f "$THEME_DIR/current.qss"
 fi
 
+if [ "$STYLESHEET_ONLY" = false ]; then
 python3 - "$INI" "$MAIN" "$CONTRAST" "$DRAW" "$USER_COLORS" <<'PY'
 import sys
 ini, main, contrast, draw, user_colors = sys.argv[1:6]
@@ -58,12 +66,8 @@ for k, v in keys.items():
 open(ini, "w", encoding="utf-8").write("\n".join(out) + "\n")
 PY
 
-pkill flameshot 2>/dev/null || true
-sleep 0.3
-setsid /usr/local/bin/flameshot >/dev/null 2>&1 &
-disown
-# Give the daemon a moment to finish starting before this script (and its
-# process group) exits - otherwise it can get reaped mid-startup.
-sleep 1.5
+fi
 
-echo "applied theme: $NAME (main=$MAIN contrast=$CONTRAST)"
+# The fork watches current.qss and the INI for changes. No process restart is
+# needed, so changing a theme keeps captures open and cannot launch an old build.
+echo "applied theme: $NAME"

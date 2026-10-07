@@ -3,7 +3,7 @@
 # nicitaacom/14_portfolio's THEME_MONTHS schedule:
 #   11        -> halloween
 #   12, 1     -> new-year
-#   otherwise -> green (default)
+#   otherwise -> crazy-mechanics (default)
 set -euo pipefail
 
 MONTH=$(date +%-m)
@@ -11,13 +11,17 @@ MONTH=$(date +%-m)
 case "$MONTH" in
     11) THEME="halloween" ;;
     12|1) THEME="new-year" ;;
-    *) THEME="green" ;;
+    *) THEME="${FLAMESHOT_DEFAULT_THEME:-crazy-mechanics}" ;;
 esac
 
-CURRENT_MARKER="$HOME/.local/share/flameshot-theme/.current"
+THEME_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/flameshot-theme"
+CURRENT_MARKER="$THEME_DIR/.current"
 if [ -f "$CURRENT_MARKER" ] && [ "$(cat "$CURRENT_MARKER")" = "$THEME" ]; then
     exit 0
 fi
 
-"$HOME/.local/bin/flameshot-theme" "$THEME"
+# Use the paired helper and update only the skin. Imported colors, save
+# destinations, shortcuts and capture preferences stay active across midnight.
+SCRIPT_DIR=$(cd -- "$(dirname -- "$0")" && pwd)
+"$SCRIPT_DIR/flameshot-theme" --stylesheet-only "$THEME"
 echo "$THEME" > "$CURRENT_MARKER"
