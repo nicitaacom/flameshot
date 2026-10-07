@@ -157,6 +157,13 @@ static std::map<CaptureTool::Type, int> buttonTypeOrder
       { CaptureTool::TYPE_SAVE_LOCATION_1, 24 },
       { CaptureTool::TYPE_SAVE_LOCATION_2, 25 },
       { CaptureTool::TYPE_SAVE_LOCATION_3, 26 },
+      { CaptureTool::TYPE_SAVE_LOCATION_4, 27 },
+      { CaptureTool::TYPE_SAVE_LOCATION_5, 28 },
+      { CaptureTool::TYPE_SAVE_LOCATION_6, 29 },
+      { CaptureTool::TYPE_SAVE_LOCATION_7, 30 },
+      { CaptureTool::TYPE_SAVE_LOCATION_8, 31 },
+      { CaptureTool::TYPE_SAVE_LOCATION_9, 32 },
+      { CaptureTool::TYPE_SAVE_LOCATION_10, 33 },
 };
 
 int CaptureToolButton::getPriorityByButton(CaptureTool::Type b)
@@ -170,7 +177,10 @@ QList<CaptureTool::Type> CaptureToolButton::iterableButtonTypes = {
     // Kept first so they're the top 3 rows in the Shortcuts tab list -
     // the Shortcuts tab lists entries in this exact array order.
     CaptureTool::TYPE_SAVE_LOCATION_1, CaptureTool::TYPE_SAVE_LOCATION_2,
-    CaptureTool::TYPE_SAVE_LOCATION_3,
+    CaptureTool::TYPE_SAVE_LOCATION_3, CaptureTool::TYPE_SAVE_LOCATION_4,
+    CaptureTool::TYPE_SAVE_LOCATION_5, CaptureTool::TYPE_SAVE_LOCATION_6,
+    CaptureTool::TYPE_SAVE_LOCATION_7, CaptureTool::TYPE_SAVE_LOCATION_8,
+    CaptureTool::TYPE_SAVE_LOCATION_9, CaptureTool::TYPE_SAVE_LOCATION_10,
 #ifdef ENABLE_IMGUR
     CaptureTool::TYPE_IMAGEUPLOADER,
 #endif

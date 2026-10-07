@@ -104,6 +104,14 @@ static QMap<class QString, QSharedPointer<ValueHandler>>
     OPTION("savePathLocation1"           ,String             ( ""            )),
     OPTION("savePathLocation2"           ,String             ( ""            )),
     OPTION("savePathLocation3"           ,String             ( ""            )),
+    OPTION("savePathLocation4"           ,String             ( ""            )),
+    OPTION("savePathLocation5"           ,String             ( ""            )),
+    OPTION("savePathLocation6"           ,String             ( ""            )),
+    OPTION("savePathLocation7"           ,String             ( ""            )),
+    OPTION("savePathLocation8"           ,String             ( ""            )),
+    OPTION("savePathLocation9"           ,String             ( ""            )),
+    OPTION("savePathLocation10"          ,String             ( ""            )),
+    OPTION("savePathLocationCount"       ,BoundedInt         ( 3, 10, 3      )),
     OPTION("showPostUploadDialog"        ,Bool               ( false         )),
     OPTION("saveAsFileExtension"         ,SaveFileExtension  (               )),
     OPTION("saveLastRegion"              ,Bool               ( false         )),
@@ -219,6 +227,13 @@ static QMap<QString, QSharedPointer<KeySequence>> recognizedShortcuts = {
     SHORTCUT("TYPE_SAVE_LOCATION_1"     ,                           ),
     SHORTCUT("TYPE_SAVE_LOCATION_2"     ,                           ),
     SHORTCUT("TYPE_SAVE_LOCATION_3"     ,                           ),
+    SHORTCUT("TYPE_SAVE_LOCATION_4"     ,                           ),
+    SHORTCUT("TYPE_SAVE_LOCATION_5"     ,                           ),
+    SHORTCUT("TYPE_SAVE_LOCATION_6"     ,                           ),
+    SHORTCUT("TYPE_SAVE_LOCATION_7"     ,                           ),
+    SHORTCUT("TYPE_SAVE_LOCATION_8"     ,                           ),
+    SHORTCUT("TYPE_SAVE_LOCATION_9"     ,                           ),
+    SHORTCUT("TYPE_SAVE_LOCATION_10"    ,                           ),
 };
 // clang-format on
 
@@ -406,6 +421,72 @@ int ConfigHandler::toolSize(CaptureTool::Type toolType)
     } else {
         // All other tools are sharing the same size
         return drawThickness();
+    }
+}
+
+QString ConfigHandler::savePathLocation(int location)
+{
+    switch (location) {
+        case 1:
+            return savePathLocation1();
+        case 2:
+            return savePathLocation2();
+        case 3:
+            return savePathLocation3();
+        case 4:
+            return savePathLocation4();
+        case 5:
+            return savePathLocation5();
+        case 6:
+            return savePathLocation6();
+        case 7:
+            return savePathLocation7();
+        case 8:
+            return savePathLocation8();
+        case 9:
+            return savePathLocation9();
+        case 10:
+            return savePathLocation10();
+        default:
+            return {};
+    }
+}
+
+void ConfigHandler::setSavePathLocation(int location, const QString& path)
+{
+    switch (location) {
+        case 1:
+            setSavePathLocation1(path);
+            break;
+        case 2:
+            setSavePathLocation2(path);
+            break;
+        case 3:
+            setSavePathLocation3(path);
+            break;
+        case 4:
+            setSavePathLocation4(path);
+            break;
+        case 5:
+            setSavePathLocation5(path);
+            break;
+        case 6:
+            setSavePathLocation6(path);
+            break;
+        case 7:
+            setSavePathLocation7(path);
+            break;
+        case 8:
+            setSavePathLocation8(path);
+            break;
+        case 9:
+            setSavePathLocation9(path);
+            break;
+        case 10:
+            setSavePathLocation10(path);
+            break;
+        default:
+            break;
     }
 }
 

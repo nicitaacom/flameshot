@@ -117,6 +117,9 @@ private:
     void initJpegQuality();
     void initReverseArrow();
     void initInsecurePixelate();
+    void addSaveLocationRow(int location);
+    void setSaveLocationCount(int count);
+    void addSaveLocation();
 #if !defined(Q_OS_MACOS)
     void initCaptureActiveMonitor();
 #endif
@@ -159,12 +162,11 @@ private:
     QLineEdit* m_savePath;
     QLineEdit* m_uploadClientKey;
     QPushButton* m_changeSaveButton;
-    QLineEdit* m_saveLocation1;
-    QLineEdit* m_saveLocation2;
-    QLineEdit* m_saveLocation3;
-    QPushButton* m_changeSaveLocation1Button;
-    QPushButton* m_changeSaveLocation2Button;
-    QPushButton* m_changeSaveLocation3Button;
+    QLineEdit* m_saveLocations[10]{};
+    QWidget* m_saveLocationRows[10]{};
+    QVBoxLayout* m_saveLocationsLayout{ nullptr };
+    QPushButton* m_addSaveLocationButton{ nullptr };
+    int m_saveLocationCount{ 0 };
     QCheckBox* m_screenshotPathFixedCheck;
     QCheckBox* m_historyConfirmationToDelete;
     QCheckBox* m_useJpgForClipboard;

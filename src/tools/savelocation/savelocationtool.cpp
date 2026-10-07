@@ -33,14 +33,8 @@ QString SaveLocationTool::description() const
 
 CaptureTool::Type SaveLocationTool::type() const
 {
-    switch (m_location) {
-        case 1:
-            return CaptureTool::TYPE_SAVE_LOCATION_1;
-        case 2:
-            return CaptureTool::TYPE_SAVE_LOCATION_2;
-        default:
-            return CaptureTool::TYPE_SAVE_LOCATION_3;
-    }
+    return static_cast<CaptureTool::Type>(
+      CaptureTool::TYPE_SAVE_LOCATION_1 + m_location - 1);
 }
 
 CaptureTool* SaveLocationTool::copy(QObject* parent)
@@ -50,18 +44,7 @@ CaptureTool* SaveLocationTool::copy(QObject* parent)
 
 void SaveLocationTool::pressed(CaptureContext& context)
 {
-    QString path;
-    switch (m_location) {
-        case 1:
-            path = ConfigHandler().savePathLocation1();
-            break;
-        case 2:
-            path = ConfigHandler().savePathLocation2();
-            break;
-        default:
-            path = ConfigHandler().savePathLocation3();
-            break;
-    }
+    const QString path = ConfigHandler().savePathLocation(m_location);
 
     emit requestAction(REQ_CLEAR_SELECTION);
     // An empty path falls back to the normal save-as dialog, same as

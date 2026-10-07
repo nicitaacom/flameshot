@@ -157,9 +157,10 @@ void GeneralConf::_updateComponents(bool allowEmptySavePath)
     if (allowEmptySavePath || !config.savePath().isEmpty()) {
         m_savePath->setText(config.savePath());
     }
-    m_saveLocation1->setText(config.savePathLocation1());
-    m_saveLocation2->setText(config.savePathLocation2());
-    m_saveLocation3->setText(config.savePathLocation3());
+    setSaveLocationCount(config.savePathLocationCount());
+    for (int i = 0; i < m_saveLocationCount; ++i) {
+        m_saveLocations[i]->setText(config.savePathLocation(i + 1));
+    }
 
     m_showTray->setChecked(!config.disabledTrayIcon());
 
@@ -754,91 +755,101 @@ void GeneralConf::changeSavePath()
     }
 }
 
-// 3 extra save destinations, each exposed as its own tool
-// (TYPE_SAVE_LOCATION_1/2/3) so a hotkey can be bound to it from the
-// Shortcuts tab, saving straight to that folder with no dialog.
+// Up to 10 save destinations, each exposed as its own tool so a hotkey can
+// save straight to that folder with no dialog.
 void GeneralConf::initSaveLocations()
 {
-    auto* box = new QGroupBox(tr("Save Path Locations (hotkey-bindable)"));
+    auto* box = new QGroupBox(
+      tr("Save Path Locations (hotkey-bindable, up to 10)"));
     box->setFlat(true);
     m_scrollAreaLayout->addWidget(box);
 
-    auto* vboxLayout = new QVBoxLayout();
-    box->setLayout(vboxLayout);
+    m_saveLocationsLayout = new QVBoxLayout();
+    box->setLayout(m_saveLocationsLayout);
 
-    QString foreground = this->palette().windowText().color().name();
     ConfigHandler config;
+    setSaveLocationCount(config.savePathLocationCount());
 
-    QLineEdit** lineEdits[3] = { &m_saveLocation1,
-                                 &m_saveLocation2,
-                                 &m_saveLocation3 };
-    QPushButton** buttons[3] = { &m_changeSaveLocation1Button,
-                                 &m_changeSaveLocation2Button,
-                                 &m_changeSaveLocation3Button };
-    QString savedPaths[3] = { config.savePathLocation1(),
-                              config.savePathLocation2(),
-                              config.savePathLocation3() };
+    m_addSaveLocationButton = new QPushButton(tr("Add Location"), this);
+    m_addSaveLocationButton->setEnabled(m_saveLocationCount < 10);
+    connect(m_addSaveLocationButton,
+            &QPushButton::clicked,
+            this,
+            &GeneralConf::addSaveLocation);
+    auto* addLocationLayout = new QHBoxLayout();
+    addLocationLayout->addWidget(m_addSaveLocationButton);
+    addLocationLayout->addStretch();
+    m_saveLocationsLayout->addLayout(addLocationLayout);
+}
 
-    for (int i = 0; i < 3; ++i) {
-        auto* rowLayout = new QHBoxLayout();
-        rowLayout->addWidget(new QLabel(tr("Location %1:").arg(i + 1)));
+void GeneralConf::addSaveLocationRow(int location)
+{
+    const int index = location - 1;
+    auto* row = new QWidget(this);
+    auto* rowLayout = new QHBoxLayout(row);
+    rowLayout->addWidget(new QLabel(tr("Location %1:").arg(location), row));
 
-        auto* lineEdit = new QLineEdit(savedPaths[i], this);
-        lineEdit->setDisabled(true);
-        lineEdit->setStyleSheet(QStringLiteral("color: %1").arg(foreground));
-        rowLayout->addWidget(lineEdit);
-        *lineEdits[i] = lineEdit;
+    auto* lineEdit = new QLineEdit(ConfigHandler().savePathLocation(location),
+                                   row);
+    lineEdit->setDisabled(true);
+    lineEdit->setStyleSheet(QStringLiteral("color: %1")
+                              .arg(palette().windowText().color().name()));
+    rowLayout->addWidget(lineEdit);
+    m_saveLocations[index] = lineEdit;
 
-        auto* button = new QPushButton(tr("Change..."), this);
-        rowLayout->addWidget(button);
-        *buttons[i] = button;
+    auto* button = new QPushButton(tr("Change..."), row);
+    rowLayout->addWidget(button);
+    connect(button, &QPushButton::clicked, this, [this, location]() {
+        changeSaveLocation(location);
+    });
 
-        int location = i + 1;
-        connect(button, &QPushButton::clicked, this, [this, location]() {
-            changeSaveLocation(location);
-        });
+    m_saveLocationRows[index] = row;
+    m_saveLocationsLayout->insertWidget(index, row);
+}
 
-        vboxLayout->addLayout(rowLayout);
+void GeneralConf::setSaveLocationCount(int count)
+{
+    count = qBound(3, count, 10);
+    while (m_saveLocationCount < count) {
+        addSaveLocationRow(++m_saveLocationCount);
     }
+    while (m_saveLocationCount > count) {
+        const int index = --m_saveLocationCount;
+        m_saveLocationsLayout->removeWidget(m_saveLocationRows[index]);
+        delete m_saveLocationRows[index];
+        m_saveLocationRows[index] = nullptr;
+        m_saveLocations[index] = nullptr;
+    }
+    if (m_addSaveLocationButton != nullptr) {
+        m_addSaveLocationButton->setEnabled(m_saveLocationCount < 10);
+    }
+}
+
+void GeneralConf::addSaveLocation()
+{
+    if (m_saveLocationCount >= 10) {
+        return;
+    }
+    const int count = m_saveLocationCount + 1;
+    ConfigHandler().setSavePathLocationCount(count);
+    setSaveLocationCount(count);
 }
 
 void GeneralConf::changeSaveLocation(int location)
 {
     ConfigHandler config;
-    QLineEdit* lineEdit = nullptr;
-    QString current;
-    switch (location) {
-        case 1:
-            lineEdit = m_saveLocation1;
-            current = config.savePathLocation1();
-            break;
-        case 2:
-            lineEdit = m_saveLocation2;
-            current = config.savePathLocation2();
-            break;
-        default:
-            lineEdit = m_saveLocation3;
-            current = config.savePathLocation3();
-            break;
+    if (location < 1 || location > 10) {
+        return;
     }
 
-    QString path = chooseFolder(current);
+    const int index = location - 1;
+    QString path = chooseFolder(config.savePathLocation(location));
     if (path.isEmpty()) {
         return;
     }
 
-    lineEdit->setText(path);
-    switch (location) {
-        case 1:
-            config.setSavePathLocation1(path);
-            break;
-        case 2:
-            config.setSavePathLocation2(path);
-            break;
-        default:
-            config.setSavePathLocation3(path);
-            break;
-    }
+    m_saveLocations[index]->setText(path);
+    config.setSavePathLocation(location, path);
 }
 
 void GeneralConf::initCopyPathAfterSave()

@@ -78,6 +78,18 @@ public:
     CONFIG_GETTER_SETTER(savePathLocation1, setSavePathLocation1, QString)
     CONFIG_GETTER_SETTER(savePathLocation2, setSavePathLocation2, QString)
     CONFIG_GETTER_SETTER(savePathLocation3, setSavePathLocation3, QString)
+    CONFIG_GETTER_SETTER(savePathLocation4, setSavePathLocation4, QString)
+    CONFIG_GETTER_SETTER(savePathLocation5, setSavePathLocation5, QString)
+    CONFIG_GETTER_SETTER(savePathLocation6, setSavePathLocation6, QString)
+    CONFIG_GETTER_SETTER(savePathLocation7, setSavePathLocation7, QString)
+    CONFIG_GETTER_SETTER(savePathLocation8, setSavePathLocation8, QString)
+    CONFIG_GETTER_SETTER(savePathLocation9, setSavePathLocation9, QString)
+    CONFIG_GETTER_SETTER(savePathLocation10, setSavePathLocation10, QString)
+    CONFIG_GETTER_SETTER(savePathLocationCount,
+                         setSavePathLocationCount,
+                         int)
+    QString savePathLocation(int location);
+    void setSavePathLocation(int location, const QString& path);
     CONFIG_GETTER_SETTER(showPostUploadDialog, setShowPostUploadDialog, bool)
     CONFIG_GETTER_SETTER(uiLanguage, setUiLanguage, QString)
     CONFIG_GETTER_SETTER(uiColor, setUiColor, QColor)

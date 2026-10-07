@@ -54,6 +54,13 @@ public:
         TYPE_SAVE_LOCATION_1 = 25,
         TYPE_SAVE_LOCATION_2 = 26,
         TYPE_SAVE_LOCATION_3 = 27,
+        TYPE_SAVE_LOCATION_4 = 28,
+        TYPE_SAVE_LOCATION_5 = 29,
+        TYPE_SAVE_LOCATION_6 = 30,
+        TYPE_SAVE_LOCATION_7 = 31,
+        TYPE_SAVE_LOCATION_8 = 32,
+        TYPE_SAVE_LOCATION_9 = 33,
+        TYPE_SAVE_LOCATION_10 = 34,
     };
     Q_ENUM(Type);
 

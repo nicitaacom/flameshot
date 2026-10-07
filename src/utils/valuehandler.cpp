@@ -340,6 +340,13 @@ QVariant ButtonList::fallback()
     auto buttons = CaptureToolButton::getIterableButtonTypes();
     buttons.removeOne(CaptureTool::TYPE_SIZEDECREASE);
     buttons.removeOne(CaptureTool::TYPE_SIZEINCREASE);
+    // Keep the original three save destinations in the default toolbar. The
+    // additional destinations remain available in the button and shortcut
+    // settings for users who configure them.
+    for (int location = 4; location <= 10; ++location) {
+        buttons.removeOne(static_cast<CaptureTool::Type>(
+          CaptureTool::TYPE_SAVE_LOCATION_1 + location - 1));
+    }
     sortButtons(buttons);
     return QVariant::fromValue(buttons);
 }

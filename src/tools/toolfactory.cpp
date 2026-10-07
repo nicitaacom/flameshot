@@ -73,6 +73,20 @@ CaptureTool* ToolFactory::CreateTool(CaptureTool::Type t, QObject* parent)
             return new SaveLocationTool(2, parent);
         case CaptureTool::TYPE_SAVE_LOCATION_3:
             return new SaveLocationTool(3, parent);
+        case CaptureTool::TYPE_SAVE_LOCATION_4:
+            return new SaveLocationTool(4, parent);
+        case CaptureTool::TYPE_SAVE_LOCATION_5:
+            return new SaveLocationTool(5, parent);
+        case CaptureTool::TYPE_SAVE_LOCATION_6:
+            return new SaveLocationTool(6, parent);
+        case CaptureTool::TYPE_SAVE_LOCATION_7:
+            return new SaveLocationTool(7, parent);
+        case CaptureTool::TYPE_SAVE_LOCATION_8:
+            return new SaveLocationTool(8, parent);
+        case CaptureTool::TYPE_SAVE_LOCATION_9:
+            return new SaveLocationTool(9, parent);
+        case CaptureTool::TYPE_SAVE_LOCATION_10:
+            return new SaveLocationTool(10, parent);
         default:
             return nullptr;
     }
