@@ -31,7 +31,7 @@ with tempfile.TemporaryDirectory(prefix="flameshot-regressions-") as directory:
             i = compile_args.index(flag)
             del compile_args[i:i+2]
     compile_args = [arg for arg in compile_args if arg != "-MD"]
-    subprocess.run(compile_args + ["-O0"] + qt, cwd=build, check=True)
+    subprocess.run(compile_args + ["-O0", '-DFORK_SOURCE_DIR="' + str(root) + '"'] + qt, cwd=build, check=True)
     link_args[link_args.index("-o") + 1] = str(binary)
     link_args = [str(obj) if arg == "src/CMakeFiles/flameshot.dir/main.cpp.o" else arg for arg in link_args]
     subprocess.run(link_args + qt, cwd=build, check=True)

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "config/generalconf.h"
 #include "config/configwindow.h"
+#include "config/styleoverride.h"
 #include "config/shortcutswidget.h"
 #include "core/flameshotdaemon.h"
 #include "utils/confighandler.h"
@@ -16,6 +17,8 @@
 #include <QDateTime>
 #include <QFile>
 #include <QProcess>
+#include <QSaveFile>
+#include <QStandardPaths>
 #include <dlfcn.h>
 #include <QLineEdit>
 #include <QPointer>
@@ -393,6 +396,41 @@ static void importedProfilePersistence()
     qInfo("PASS: import refresh, stale writes, midnight, process restart and invalid import rollback");
 }
 
+static void customTheme()
+{
+    const QString directory =
+      QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation) +
+      "/flameshot-theme";
+    require(QDir().mkpath(directory), "Theme fixture directory created");
+    const auto install = [&directory](const QString& name) {
+        QFile source(QStringLiteral(FORK_SOURCE_DIR "/contrib/flameshot-theme/") + name + ".qss");
+        require(source.open(QIODevice::ReadOnly), "Historical stylesheet exists");
+        QSaveFile target(directory + "/current.qss");
+        require(target.open(QIODevice::WriteOnly), "Theme can be installed");
+        target.write(source.readAll());
+        require(target.commit(), "Stylesheet replaced atomically");
+    };
+    install("crazy-mechanics");
+    watchCustomStyleSheet();
+    require(qApp->styleSheet().contains("#c05cff"),
+            "Selected Crazy Mechanics theme is applied app-wide");
+    QLabel label("Themed label");
+    label.show();
+    QTest::qWait(30);
+    require(label.palette().color(QPalette::WindowText) == QColor("#e8e8e8"),
+            "Historical theme changes the rendered widget palette");
+    install("green");
+    QTest::qWait(150);
+    require(qApp->styleSheet().contains("#60ff00"),
+            "Theme updates apply without restarting or closing capture");
+    install("crazy-mechanics");
+    QTest::qWait(150);
+    require(qApp->styleSheet().contains("#c05cff"),
+            "Watcher survives repeated atomic stylesheet replacements");
+    checkImportedProfile();
+    qInfo("PASS: historical QSS styling and live theme changes preserve the active profile");
+}
+
 int main(int argc, char** argv)
 {
     QApplication app(argc, argv);
@@ -411,5 +449,6 @@ int main(int argc, char** argv)
     saveLocations();
     doubleClicks();
     importedProfilePersistence();
+    customTheme();
     return 0;
 }

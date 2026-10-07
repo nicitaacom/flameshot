@@ -17,3 +17,6 @@ public:
                   const QWidget* widget = Q_NULLPTR,
                   QStyleHintReturn* returnData = Q_NULLPTR) const;
 };
+
+// Load the selected app-wide theme and follow later stylesheet changes.
+void watchCustomStyleSheet();

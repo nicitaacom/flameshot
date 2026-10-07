@@ -182,6 +182,9 @@ void configureApp(bool gui, QTranslator& translator, QTranslator& qtTranslator)
         QApplication::setStyle(new StyleOverride);
 #endif
         qApp->installEventFilter(new WheelFocusGuard(qApp));
+        // Platform integrations may install their own QSS during startup.
+        // Apply the user's selected theme on the next event-loop iteration.
+        QTimer::singleShot(0, qApp, &watchCustomStyleSheet);
     }
 
     auto app = QCoreApplication::instance();
