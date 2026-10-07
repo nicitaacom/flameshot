@@ -145,7 +145,6 @@ static QMap<class QString, QSharedPointer<ValueHandler>>
     OPTION("copyOnDoubleClick"           ,Bool               ( false         )),
     OPTION("uploadClientSecret"          ,String             ( "313baf0c7b4d3ff" )),
     OPTION("showSelectionGeometry"       , BoundedInt        ( 0, 5, 4       )),
-    OPTION("showSelectionGeometryEnabled",Bool               ( true          )),
     OPTION("showSelectionGeometryHideTime", LowerBoundedInt  ( 0, 3000       )),
     // Defaults to 100 (was 75) so JPEG saves/uploads are full quality
     // out of the box; users can still lower it in General settings.

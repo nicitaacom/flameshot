@@ -704,10 +704,7 @@ void CaptureWidget::paintEvent(QPaintEvent* paintEvent)
        too
     */
     bool save = false;
-    const bool showGeometry = m_xywhDisplay &&
-                              m_config.showSelectionGeometryEnabled() &&
-                              m_config.showSelectionGeometry();
-    if (showGeometry ||                            // clause 1: xywh display
+    if (m_xywhDisplay ||                           // clause 1: xywh display
         m_displayGrid ||                           // clause 2: display grid
         (m_activeTool && m_mouseIsClicked) ||      // clause 3: tool/click
         (m_previewEnabled && activeButtonTool() && // clause 4: mouse preview
@@ -716,7 +713,7 @@ void CaptureWidget::paintEvent(QPaintEvent* paintEvent)
         save = true;
     }
     painter.drawPixmap(0, 0, m_context.screenshot);
-    if (m_selection && showGeometry) {
+    if (m_selection && m_xywhDisplay) {
         const QRect& selection = m_selection->geometry().normalized();
         const qreal scale = m_context.screenshot.devicePixelRatio();
         QRect xybox;
@@ -1779,12 +1776,8 @@ void CaptureWidget::deleteCurrentTool()
 
 void CaptureWidget::updateSizeIndicator()
 {
-    if (m_config.showSelectionGeometryEnabled() &&
-        m_config.showSelectionGeometry()) {
+    if (m_config.showSelectionGeometry()) {
         showxywh();
-    } else {
-        m_xywhDisplay = false;
-        m_xywhTimer.stop();
     }
     if (m_sizeIndButton) {
         const QRect& selection = extendedSelection();
