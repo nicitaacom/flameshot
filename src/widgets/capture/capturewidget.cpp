@@ -13,8 +13,8 @@
 #include "config/cacheutils.h"
 #include "config/generalconf.h"
 #include "core/flameshot.h"
+#include "core/flameshotdaemon.h"
 #include "core/qguiappcurrentscreen.h"
-#include "tools/copy/copytool.h"
 #include "utils/abstractlogger.h"
 #include "utils/desktopinfo.h"
 #include "utils/screengrabber.h"
@@ -973,12 +973,7 @@ void CaptureWidget::mouseDoubleClickEvent(QMouseEvent* event)
     } else if (m_selection->geometry().contains(event->pos())) {
         if ((event->button() == Qt::LeftButton) &&
             (m_config.copyOnDoubleClick())) {
-            CopyTool copyTool;
-            connect(&copyTool,
-                    &CopyTool::requestAction,
-                    this,
-                    &CaptureWidget::handleToolSignal);
-            copyTool.pressed(m_context);
+            FlameshotDaemon::copyToClipboard(pixmap());
             qApp->processEvents(QEventLoop::ExcludeUserInputEvents);
         }
     }
