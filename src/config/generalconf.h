@@ -60,6 +60,7 @@ private slots:
     void setSaveAsFileExtension(const QString& extension);
     void setGeometryLocation(int index);
     void setSelGeoHideTime(int v);
+    void setSelectionGeometryEnabled(bool enabled);
     void setJpegQuality(int v);
     void setReverseArrow(bool checked);
     void setInsecurePixelate(bool checked);

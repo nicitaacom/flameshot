@@ -15,6 +15,7 @@
 #include <QMessageBox>
 #include <QPushButton>
 #include <QSettings>
+#include <QSignalBlocker>
 #include <QSpinBox>
 #include <QStandardPaths>
 #include <QStringDecoder>
@@ -78,6 +79,7 @@ GeneralConf::GeneralConf(QWidget* parent)
         QVBoxLayout* outer = m_scrollAreaLayout;
         QVBoxLayout* group = pushGroupBox(tr("Options"));
         m_scrollAreaLayout = group;
+        initShowSelectionGeometry();
         initCopyPathAfterSave();
         initAntialiasingPinZoom();
         initInsecurePixelate();
@@ -108,7 +110,6 @@ GeneralConf::GeneralConf(QWidget* parent)
 #ifdef ENABLE_IMGUR
     initUploadClientSecret();
 #endif
-    initShowSelectionGeometry();
 
     m_scrollAreaLayout->addStretch();
 
@@ -157,6 +158,25 @@ void GeneralConf::_updateComponents(bool allowEmptySavePath)
 
     if (allowEmptySavePath || !config.savePath().isEmpty()) {
         m_savePath->setText(config.savePath());
+    }
+    const int geometryLocation = config.showSelectionGeometry();
+    int geometryIndex = m_selectGeometryLocation->findData(geometryLocation);
+    if (geometryIndex < 0) {
+        geometryIndex = m_selectGeometryLocation->findData(xywh_bottom_right);
+    }
+    {
+        const QSignalBlocker blockGeometryLocation(m_selectGeometryLocation);
+        m_selectGeometryLocation->setCurrentIndex(geometryIndex);
+    }
+    const bool showGeometry = config.showSelectionGeometryEnabled() &&
+                              geometryLocation != xywh_none;
+    m_showSelectionGeometry->setChecked(showGeometry);
+    m_selectGeometryLocation->setEnabled(showGeometry);
+    m_xywhTimeout->setEnabled(showGeometry);
+    {
+        const QSignalBlocker blockTimeout(m_xywhTimeout);
+        m_xywhTimeout->setValue(
+          config.value("showSelectionGeometryHideTime").toInt());
     }
     setSaveLocationCount(config.savePathLocationCount());
     for (int i = 0; i < m_saveLocationCount; ++i) {
@@ -948,12 +968,19 @@ void GeneralConf::initSquareMagnifier()
 
 void GeneralConf::initShowSelectionGeometry()
 {
-    auto* box = new QGroupBox(tr("Selection Geometry Display"));
-    box->setFlat(true);
-    m_scrollAreaLayout->addWidget(box);
-
-    auto* vboxLayout = new QVBoxLayout();
-    box->setLayout(vboxLayout);
+    m_showSelectionGeometry = new QCheckBox(tr("Show resolution"), this);
+    auto* infoIcon = new QLabel(this);
+    infoIcon->setPixmap(
+      style()->standardIcon(QStyle::SP_MessageBoxInformation).pixmap(16, 16));
+    infoIcon->setToolTip(
+      tr("Show the selection dimensions and position during capture, for "
+         "example 646x319+740+256 (width x height + x + y). "
+         "Uncheck to hide this overlay."));
+    auto* infoRow = new QHBoxLayout();
+    infoRow->addWidget(m_showSelectionGeometry);
+    infoRow->addWidget(infoIcon);
+    infoRow->addStretch();
+    m_scrollAreaLayout->addLayout(infoRow);
 
     auto* tobox = new QHBoxLayout();
     int timeout =
@@ -963,9 +990,9 @@ void GeneralConf::initShowSelectionGeometry()
     m_xywhTimeout->setToolTip(
       tr("Milliseconds before geometry display hides; 0 means do not hide"));
     m_xywhTimeout->setValue(timeout);
+    tobox->addWidget(new QLabel(tr("Resolution display timeout (ms)")));
     tobox->addWidget(m_xywhTimeout);
-    tobox->addWidget(new QLabel(tr("Set geometry display timeout (ms)")));
-    vboxLayout->addLayout(tobox);
+    m_scrollAreaLayout->addLayout(tobox);
     connect(m_xywhTimeout,
             static_cast<void (QSpinBox::*)(int)>(&QSpinBox::valueChanged),
             this,
@@ -974,6 +1001,8 @@ void GeneralConf::initShowSelectionGeometry()
     auto* selGeoLayout = new QHBoxLayout();
     selGeoLayout->addWidget(new QLabel(tr("Display Location")));
     m_selectGeometryLocation = new QComboBox(this);
+    m_selectGeometryLocation->setToolTip(
+      tr("Choose where the selection dimensions appear."));
 
     m_selectGeometryLocation->addItem(tr("None"), GeneralConf::xywh_none);
     m_selectGeometryLocation->addItem(tr("Top Left"),
@@ -990,6 +1019,11 @@ void GeneralConf::initShowSelectionGeometry()
     int pos = ConfigHandler().value("showSelectionGeometry").toInt();
     m_selectGeometryLocation->setCurrentIndex(
       m_selectGeometryLocation->findData(pos));
+    const bool showGeometry =
+      ConfigHandler().showSelectionGeometryEnabled() && pos != xywh_none;
+    m_showSelectionGeometry->setChecked(showGeometry);
+    m_selectGeometryLocation->setEnabled(showGeometry);
+    m_xywhTimeout->setEnabled(showGeometry);
 
     connect(
       m_selectGeometryLocation,
@@ -997,9 +1031,13 @@ void GeneralConf::initShowSelectionGeometry()
       this,
       &GeneralConf::setGeometryLocation);
 
+    connect(m_showSelectionGeometry,
+            &QCheckBox::clicked,
+            this,
+            &GeneralConf::setSelectionGeometryEnabled);
+
     selGeoLayout->addWidget(m_selectGeometryLocation);
-    vboxLayout->addLayout(selGeoLayout);
-    vboxLayout->addStretch();
+    m_scrollAreaLayout->addLayout(selGeoLayout);
 }
 
 void GeneralConf::initJpegQuality()
@@ -1067,8 +1105,28 @@ void GeneralConf::setJpegQuality(int v)
 
 void GeneralConf::setGeometryLocation(int index)
 {
-    ConfigHandler().setValue("showSelectionGeometry",
-                             m_selectGeometryLocation->itemData(index));
+    ConfigHandler config;
+    const int location =
+      m_selectGeometryLocation->itemData(index).toInt();
+    config.setShowSelectionGeometry(location);
+    const bool showGeometry = location != xywh_none;
+    m_showSelectionGeometry->setChecked(showGeometry);
+    m_selectGeometryLocation->setEnabled(showGeometry);
+    m_xywhTimeout->setEnabled(showGeometry);
+    config.setShowSelectionGeometryEnabled(showGeometry);
+}
+
+void GeneralConf::setSelectionGeometryEnabled(bool enabled)
+{
+    ConfigHandler config;
+    if (enabled &&
+        m_selectGeometryLocation->currentData().toInt() == xywh_none) {
+        m_selectGeometryLocation->setCurrentIndex(
+          m_selectGeometryLocation->findData(xywh_bottom_right));
+    }
+    m_selectGeometryLocation->setEnabled(enabled);
+    m_xywhTimeout->setEnabled(enabled);
+    config.setShowSelectionGeometryEnabled(enabled);
 }
 
 void GeneralConf::togglePathFixed()
