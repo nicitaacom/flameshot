@@ -112,17 +112,14 @@ ConfigWindow::ConfigWindow(QWidget* parent)
     initErrorIndicator(m_generalConfigTab, m_generalConfig);
     initErrorIndicator(m_shortcutsTab, m_shortcuts);
 
-    // Cap the window to roughly half the screen height (50vh) - with no
-    // limit here, tabs whose content doesn't fit in a QScrollArea let the
-    // window grow to fit every setting and can end up taller than the
-    // screen. Each tab's own scroll area (see GeneralConf) handles
-    // overflow once the window itself stops growing.
+    // Keep a comfortable opening size while leaving overflow to each tab's
+    // scroll area. The previous half-screen maximum was smaller than the
+    // tab widget's minimum height and prevented useful resizing.
+    m_tabWidget->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Ignored);
+    setMinimumSize(640, 400);
     QScreen* screen = QGuiAppCurrentScreen().currentScreen();
-    if (screen) {
-        int maxHeight = screen->availableGeometry().height() / 2;
-        setMaximumHeight(maxHeight);
-        resize(width(), maxHeight);
-    }
+    const int availableHeight = screen ? screen->availableGeometry().height() : 900;
+    resize(800, qMin(760, availableHeight - 60));
 }
 
 void ConfigWindow::keyPressEvent(QKeyEvent* e)

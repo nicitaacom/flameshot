@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "config/generalconf.h"
+#include "config/configwindow.h"
 #include "config/shortcutswidget.h"
 #include "core/flameshotdaemon.h"
 #include "utils/confighandler.h"
@@ -38,6 +39,9 @@ static void resolutionSettings()
 {
     ConfigHandler config;
     GeneralConf general;
+    const auto sections = general.findChildren<QGroupBox*>();
+    require(!sections.isEmpty() && sections.first()->title() == "Options",
+            "Options appears first when General settings opens");
     QGroupBox* options = nullptr;
     for (auto* box : general.findChildren<QGroupBox*>()) {
         if (box->title() == "Options") {
@@ -49,6 +53,12 @@ static void resolutionSettings()
     require(!checks.isEmpty() && checks.first()->text() == "Show resolution",
             "Show resolution is the first Options checkbox");
     auto* show = checks.first();
+    general.resize(640, 600);
+    general.show();
+    QTest::qWait(20);
+    const QRect checkboxBounds(show->mapTo(&general, QPoint()), show->size());
+    require(general.rect().contains(checkboxBounds),
+            "Show resolution is visible without scrolling when General opens");
     bool hasInfo = false;
     for (auto* label : options->findChildren<QLabel*>()) {
         hasInfo |= label->toolTip().contains("646x319+740+256") &&
@@ -77,7 +87,29 @@ static void resolutionSettings()
     require(config.showSelectionGeometryEnabled() &&
               config.showSelectionGeometry() == GeneralConf::xywh_bottom_right,
             "Enabling a legacy None setting selects a visible position");
-    qInfo("PASS: resolution settings and legacy compatibility");
+    QLabel* quality = nullptr;
+    QSpinBox* qualityValue = nullptr;
+    for (auto* label : general.findChildren<QLabel*>()) {
+        if (label->text() == "JPEG Quality") {
+            quality = label;
+        }
+    }
+    for (auto* spin : general.findChildren<QSpinBox*>()) {
+        if (spin->maximum() == 100) {
+            qualityValue = spin;
+        }
+    }
+    require(quality && qualityValue &&
+              quality->mapTo(&general, QPoint()).x() < qualityValue->mapTo(&general, QPoint()).x(),
+            "JPEG Quality label precedes its value");
+    ConfigWindow window;
+    window.setAttribute(Qt::WA_DeleteOnClose, false);
+    window.show();
+    window.resize(800, 700);
+    QTest::qWait(20);
+    require(window.height() == 700,
+            "Settings window can resize without the conflicting half-screen cap");
+    qInfo("PASS: visible resolution settings, section layout, resize and legacy compatibility");
 }
 
 static void resolutionOverlay()

@@ -34,6 +34,40 @@ GeneralConf::GeneralConf(QWidget* parent)
     // It must be initialized before the checkboxes.
     initScrollArea();
 
+    // Make the capture options visible as soon as General settings opens.
+    // Show resolution is the first control in this section.
+    {
+        QVBoxLayout* outer = m_scrollAreaLayout;
+        QVBoxLayout* group = pushGroupBox(tr("Options"));
+        m_scrollAreaLayout = group;
+        initShowSelectionGeometry();
+        initCopyPathAfterSave();
+        initAntialiasingPinZoom();
+        initInsecurePixelate();
+#if !defined(Q_OS_MACOS)
+        initCaptureActiveMonitor();
+#endif
+#if defined(Q_OS_MACOS)
+        initUseNativeFullscreen();
+#endif
+#if defined(Q_OS_UNIX) && !defined(Q_OS_MACOS)
+        initUseX11LegacyScreenshot();
+#endif
+#ifdef ENABLE_IMGUR
+        initCopyAndCloseAfterUpload();
+        initUploadWithoutConfirmation();
+        initHistoryConfirmationToDelete();
+#endif
+        initPredefinedColorPaletteLarge();
+        initShowMagnifier();
+        initSquareMagnifier();
+        initReverseArrow();
+        m_scrollAreaLayout = outer;
+        group->activate();
+    }
+    // Keep JPEG Quality and Save-after-copy grouped with the save path.
+    initSaveAfterCopy();
+    initSaveLocations();
     {
         QVBoxLayout* outer = m_scrollAreaLayout;
         QVBoxLayout* group = pushGroupBox(tr("Startup"));
@@ -66,40 +100,6 @@ GeneralConf::GeneralConf(QWidget* parent)
         initShowSidePanelButton();
         initUseJpgForClipboard();
         initCopyOnDoubleClick();
-        m_scrollAreaLayout = outer;
-        group->activate();
-    }
-    // Where screenshots end up is core to every capture, so the save
-    // settings (which also carry JPEG Quality now, folded into the Save
-    // Path box) rank above the general Options toggles below.
-    initSaveAfterCopy();
-    initSaveLocations();
-    {
-        QVBoxLayout* outer = m_scrollAreaLayout;
-        QVBoxLayout* group = pushGroupBox(tr("Options"));
-        m_scrollAreaLayout = group;
-        initShowSelectionGeometry();
-        initCopyPathAfterSave();
-        initAntialiasingPinZoom();
-        initInsecurePixelate();
-#if !defined(Q_OS_MACOS)
-        initCaptureActiveMonitor();
-#endif
-#if defined(Q_OS_MACOS)
-        initUseNativeFullscreen();
-#endif
-#if defined(Q_OS_UNIX) && !defined(Q_OS_MACOS)
-        initUseX11LegacyScreenshot();
-#endif
-#ifdef ENABLE_IMGUR
-        initCopyAndCloseAfterUpload();
-        initUploadWithoutConfirmation();
-        initHistoryConfirmationToDelete();
-#endif
-        initPredefinedColorPaletteLarge();
-        initShowMagnifier();
-        initSquareMagnifier();
-        initReverseArrow();
         m_scrollAreaLayout = outer;
         group->activate();
     }
@@ -968,9 +968,10 @@ void GeneralConf::initShowSelectionGeometry()
     infoIcon->setPixmap(
       style()->standardIcon(QStyle::SP_MessageBoxInformation).pixmap(16, 16));
     infoIcon->setToolTip(
-      tr("Show the selection dimensions and position during capture, for "
-         "example 646x319+740+256 (width x height + x + y). "
-         "Uncheck to hide this overlay."));
+      tr("<p>Show the selection dimensions and position during capture, for "
+         "example <b>646x319+740+256</b> "
+         "(width x height + x + y).</p>"
+         "<p>Uncheck to hide this overlay.</p>"));
     auto* infoRow = new QHBoxLayout();
     infoRow->addWidget(m_showSelectionGeometry);
     infoRow->addWidget(infoIcon);
@@ -1045,8 +1046,8 @@ void GeneralConf::initJpegQuality()
     m_jpegQuality->setToolTip(tr("Quality range of 0-100; Higher number is "
                                  "better quality and larger file size"));
     m_jpegQuality->setValue(quality);
-    tobox->addWidget(m_jpegQuality);
     tobox->addWidget(new QLabel(tr("JPEG Quality")));
+    tobox->addWidget(m_jpegQuality);
 
     m_scrollAreaLayout->addLayout(tobox);
     connect(m_jpegQuality,
