@@ -2,12 +2,15 @@
 #include "config/generalconf.h"
 #include "config/shortcutswidget.h"
 #include "tools/toolfactory.h"
+#include "core/flameshotdaemon.h"
 #include "utils/confighandler.h"
 #include "widgets/capture/capturewidget.h"
 
 #include <QApplication>
 #include <QCheckBox>
 #include <QComboBox>
+#include <QClipboard>
+#include <QSignalSpy>
 #include <QGroupBox>
 #include <QDir>
 #include <QLineEdit>
@@ -188,6 +191,57 @@ static void saveLocations()
     qInfo("PASS: three default locations, ten configurable folders and real shortcut saves");
 }
 
+static void doubleClicks()
+{
+    ConfigHandler config;
+    config.setCopyOnDoubleClick(true);
+    config.setSaveAfterCopy(false);
+    config.setShowDesktopNotification(false);
+    config.setDisabledTrayIcon(true);
+    config.setCheckForUpdates(false);
+    config.setAutoCloseIdleDaemon(false);
+    FlameshotDaemon::start();
+    QTemporaryDir destination;
+    require(destination.isValid(), "Double-click test directory exists");
+    config.setSavePath(destination.path());
+    config.setSavePathFixed(true);
+    CaptureRequest request(CaptureRequest::GRAPHICAL_MODE);
+    request.setInitialSelection(QRect(200, 100, 300, 200));
+    QPointer<CaptureWidget> capture = new CaptureWidget(request);
+    capture->show();
+    capture->activateWindow();
+    QTest::qWait(50);
+    QApplication::clipboard()->setText("clipboard sentinel");
+    QTest::mouseDClick(capture, Qt::RightButton, Qt::NoModifier, QPoint(350, 200));
+    QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
+    require(capture && capture->isVisible(), "Right double-click keeps capture open");
+    require(QApplication::clipboard()->text() == "clipboard sentinel",
+            "Right double-click leaves the clipboard alone");
+    config.setCopyOnDoubleClick(false);
+    QTest::mouseDClick(capture, Qt::LeftButton, Qt::NoModifier, QPoint(350, 200));
+    require(QApplication::clipboard()->text() == "clipboard sentinel",
+            "Disabled left double-click leaves the clipboard alone");
+    config.setCopyOnDoubleClick(true);
+    QTest::mouseDClick(capture, Qt::LeftButton, Qt::NoModifier, QPoint(350, 200));
+    QTest::qWait(50);
+    QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
+    require(capture && capture->isVisible(), "Left double-click keeps capture open");
+    const QPixmap copied = QApplication::clipboard()->pixmap();
+    require(!copied.isNull() && copied.size() == capture->pixmap().size(),
+            "Left double-click copies the selected capture");
+    require(QDir(destination.path()).entryList(QDir::Files).isEmpty(),
+            "Left double-click does not save when Save-after-copy is disabled");
+    config.setSaveAfterCopy(true);
+    QTest::mouseDClick(capture, Qt::LeftButton, Qt::NoModifier, QPoint(350, 200));
+    QTest::qWait(50);
+    require(capture && capture->isVisible() &&
+              QDir(destination.path()).entryList({"*.png"}, QDir::Files).size() == 1,
+            "Left double-click preserves the configured Save-after-copy behavior");
+    capture->close();
+    QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
+    qInfo("PASS: both double-clicks stay open; left copies and honors Save-after-copy");
+}
+
 int main(int argc, char** argv)
 {
     QApplication app(argc, argv);
@@ -198,5 +252,6 @@ int main(int argc, char** argv)
     resolutionSettings();
     resolutionOverlay();
     saveLocations();
+    doubleClicks();
     return 0;
 }
