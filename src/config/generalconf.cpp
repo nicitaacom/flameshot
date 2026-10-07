@@ -17,6 +17,7 @@
 #include <QSettings>
 #include <QSpinBox>
 #include <QStandardPaths>
+#include <QStringDecoder>
 #include <QStyle>
 #include <QVBoxLayout>
 
@@ -233,13 +234,23 @@ void GeneralConf::importConfiguration()
     if (fileName.isEmpty()) {
         return;
     }
-    if (!ConfigHandler::getInstance()->importConfiguration(fileName)) {
-        QMessageBox::about(
-          this,
-          tr("Error"),
-          tr("Unable to import configuration. The file is invalid or could "
-             "not be written."));
+    QFile file(fileName);
+    if (!file.open(QFile::ReadOnly)) {
+        QMessageBox::about(this, tr("Error"), tr("Unable to read file."));
+        return;
     }
+    QStringDecoder decoder(QStringDecoder::System);
+    QString text = decoder(file.readAll());
+    file.close();
+
+    QFile config(ConfigHandler().configFilePath());
+    if (!config.open(QFile::WriteOnly)) {
+        QMessageBox::about(this, tr("Error"), tr("Unable to write file."));
+        return;
+    }
+    QStringEncoder encoder(QStringEncoder::System);
+    config.write(encoder(text));
+    config.close();
 }
 
 void GeneralConf::exportFileConfiguration()
