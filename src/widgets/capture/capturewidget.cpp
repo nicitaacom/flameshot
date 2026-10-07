@@ -953,6 +953,14 @@ void CaptureWidget::mousePressEvent(QMouseEvent* e)
 
 void CaptureWidget::mouseDoubleClickEvent(QMouseEvent* event)
 {
+    // A right-button double-click should leave the capture open. Right-click
+    // is used for the color picker; don't let the double-click propagate to
+    // another widget or window handler.
+    if (event->button() == Qt::RightButton) {
+        event->accept();
+        return;
+    }
+
     int activeLayerIndex = m_panel->activeLayerIndex();
     if (activeLayerIndex != -1) {
         // Start object editing
