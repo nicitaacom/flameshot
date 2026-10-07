@@ -35,15 +35,15 @@ GeneralConf::GeneralConf(QWidget* parent)
     initScrollArea();
 
     // Make the capture options visible as soon as General settings opens.
-    // Show resolution is the first control in this section.
+    // Keep Show resolution beside the related opacity-blur option.
     {
         QVBoxLayout* outer = m_scrollAreaLayout;
         QVBoxLayout* group = pushGroupBox(tr("Options"));
         m_scrollAreaLayout = group;
-        initShowSelectionGeometry();
         initCopyPathAfterSave();
         initAntialiasingPinZoom();
         initInsecurePixelate();
+        initShowSelectionGeometry();
 #if !defined(Q_OS_MACOS)
         initCaptureActiveMonitor();
 #endif
@@ -965,13 +965,15 @@ void GeneralConf::initShowSelectionGeometry()
 {
     m_showSelectionGeometry = new QCheckBox(tr("Show resolution"), this);
     auto* infoIcon = new QLabel(this);
+    infoIcon->setObjectName("selectionResolutionInfo");
     infoIcon->setPixmap(
       style()->standardIcon(QStyle::SP_MessageBoxInformation).pixmap(16, 16));
     infoIcon->setToolTip(
       tr("<p>Show the selection dimensions and position during capture, for "
          "example <b>646x319+740+256</b> "
          "(width x height + x + y).</p>"
-         "<p>Uncheck to hide this overlay.</p>"));
+         "<p>Uncheck to hide this overlay.</p>"
+         "<img src=':/img/app/resolution-diff.svg' width='480' height='210'>"));
     auto* infoRow = new QHBoxLayout();
     infoRow->addWidget(m_showSelectionGeometry);
     infoRow->addWidget(infoIcon);

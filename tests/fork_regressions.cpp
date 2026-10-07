@@ -57,21 +57,37 @@ static void resolutionSettings()
     }
     require(options != nullptr, "Options section exists");
     const auto checks = options->findChildren<QCheckBox*>();
-    require(!checks.isEmpty() && checks.first()->text() == "Show resolution",
-            "Show resolution is the first Options checkbox");
-    auto* show = checks.first();
+    QCheckBox* show = nullptr;
+    QCheckBox* blur = nullptr;
+    for (auto* check : checks) {
+        if (check->text() == "Show resolution") {
+            show = check;
+        } else if (check->text() == "Enable opacity blur") {
+            blur = check;
+        }
+    }
+    require(show && blur && checks.indexOf(show) == checks.indexOf(blur) + 1,
+            "Show resolution is directly after Enable opacity blur");
     general.resize(640, 600);
     general.show();
     QTest::qWait(20);
     const QRect checkboxBounds(show->mapTo(&general, QPoint()), show->size());
     require(general.rect().contains(checkboxBounds),
             "Show resolution is visible without scrolling when General opens");
+    require(show->mapTo(&general, QPoint()).y() >
+              blur->mapTo(&general, QPoint()).y(),
+            "Show resolution is rendered below Enable opacity blur");
     bool hasInfo = false;
     for (auto* label : options->findChildren<QLabel*>()) {
         hasInfo |= label->toolTip().contains("646x319+740+256") &&
                    !label->pixmap().isNull();
     }
     require(hasInfo, "Resolution has an information icon and helpful tooltip");
+    auto* info = options->findChild<QLabel*>("selectionResolutionInfo");
+    require(info && info->isVisible() &&
+              info->toolTip().contains("resolution-diff.svg") &&
+              !QPixmap(":/img/app/resolution-diff.svg").isNull(),
+            "Visible resolution info icon includes the bundled before/after preview");
     QComboBox* location = nullptr;
     for (auto* combo : options->findChildren<QComboBox*>()) {
         if (combo->findData(GeneralConf::xywh_bottom_right) >= 0) {
