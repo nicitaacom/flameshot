@@ -35,7 +35,10 @@ GeneralConf::GeneralConf(QWidget* parent)
     initScrollArea();
 
     // Make the capture options visible as soon as General settings opens.
-    // Keep Show resolution beside the related opacity-blur option.
+    // Keep Show resolution immediately below Enable opacity blur. The earlier
+    // top-of-Options placement put it outside the user's visible reference crop
+    // and made the control look missing; this is a placement issue, not a daemon
+    // restart issue.
     {
         QVBoxLayout* outer = m_scrollAreaLayout;
         QVBoxLayout* group = pushGroupBox(tr("Options"));

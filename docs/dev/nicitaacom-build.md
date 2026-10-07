@@ -31,9 +31,13 @@ cmake --version
 cmake -S . -B build \
   -DCMAKE_BUILD_TYPE=Release \
   -DCMAKE_INSTALL_PREFIX=/opt/flameshot-nicitaacom \
-  -DUSE_LAUNCHER_ABSOLUTE_PATH=ON
+  -DUSE_LAUNCHER_ABSOLUTE_PATH=ON \
+  -DENABLE_IMGUR=ON
 cmake --build build -j"$(nproc)"
 
+# Stop the old single-instance process before replacing or launching the build.
+pkill -x flameshot || true
+sudo rm -rf /opt/flameshot-nicitaacom
 sudo cmake --install build
 ```
 
@@ -58,18 +62,12 @@ StartupWMClass=flameshot
 Terminal=false
 DESKTOP
 update-desktop-database ~/.local/share/applications
-```
-
-Replace an already running daemon before launching the installed build. The
-single-instance guard otherwise lets the older process keep hosting captures:
-
-```sh
-pkill -x flameshot || true
 /opt/flameshot-nicitaacom/bin/flameshot --version
 /opt/flameshot-nicitaacom/bin/flameshot
 ```
 
-Confirm the running binary:
+The single-instance guard otherwise lets the older process keep hosting
+captures. Verify the executable path after launch:
 
 ```sh
 for pid in $(pgrep -x flameshot); do

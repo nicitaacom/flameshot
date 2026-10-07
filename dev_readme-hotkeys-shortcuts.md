@@ -1,5 +1,31 @@
 # Hotkeys & Shortcuts
 
+## Fork UI rebuild and daemon reload note
+
+The "Show resolution" checkbox and its information icon belong immediately
+below "Enable opacity blur" in Configuration > General > Options. A previous
+iteration put the row at the very top of Options; when it was outside the
+visible part of the user's settings screenshot, it looked as if the control
+and icon were missing. Do not move it back to the top. The source comment next
+to `initShowSelectionGeometry()` records this placement issue.
+
+When checking a UI change, verify both the configuration layout and the
+running executable. Flameshot is single-instance: launching a newly installed
+binary while an older daemon is alive sends a request to that daemon, which
+continues to serve the old UI. Stop the running daemon and start the desired
+binary explicitly:
+
+```sh
+pkill -x flameshot || true
+/opt/flameshot-nicitaacom/bin/flameshot --version
+/opt/flameshot-nicitaacom/bin/flameshot
+```
+
+For this fork, a fresh build enables Imgur by default. Set
+`-DENABLE_IMGUR=ON` explicitly when reusing a build directory so an old CMake
+cache cannot silently retain `ENABLE_IMGUR=OFF`. Reconfigure after adding a
+Qt resource or source file, then build and install from the same checkout.
+
 ## Incident: Ctrl+E (and shortcuts in general) randomly not firing
 
 **Symptom:** after opening a capture (Print), keyboard shortcuts like
