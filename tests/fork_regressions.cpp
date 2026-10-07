@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "config/generalconf.h"
+#include "config/shortcutswidget.h"
+#include "tools/toolfactory.h"
 #include "utils/confighandler.h"
 #include "widgets/capture/capturewidget.h"
 
@@ -7,6 +9,13 @@
 #include <QCheckBox>
 #include <QComboBox>
 #include <QGroupBox>
+#include <QDir>
+#include <QLineEdit>
+#include <QPointer>
+#include <QPushButton>
+#include <QShortcut>
+#include <QTableWidget>
+#include <QTemporaryDir>
 #include <QLabel>
 #include <QSettings>
 #include <QSpinBox>
@@ -91,6 +100,94 @@ static void resolutionOverlay()
     qInfo("PASS: resolution overlay renders only when enabled");
 }
 
+static void saveLocations()
+{
+    ConfigHandler config;
+    require(config.savePathLocationCount() == 3,
+            "Three save locations are enabled by default");
+    const auto defaults = config.buttons();
+    for (int i = 1; i <= 10; ++i) {
+        const auto type = static_cast<CaptureTool::Type>(
+          CaptureTool::TYPE_SAVE_LOCATION_1 + i - 1);
+        require(defaults.contains(type) == (i <= 3),
+                "Only the original three save tools are visible by default");
+    }
+    GeneralConf general;
+    QPushButton* add = nullptr;
+    QGroupBox* locations = nullptr;
+    for (auto* box : general.findChildren<QGroupBox*>()) {
+        if (box->title().startsWith("Save Path Locations")) {
+            locations = box;
+        }
+    }
+    require(locations != nullptr, "Save locations section exists");
+    for (auto* button : locations->findChildren<QPushButton*>()) {
+        if (button->text() == "Add Location") {
+            add = button;
+        }
+    }
+    require(add != nullptr, "Add Location is available");
+    require(locations->findChildren<QLineEdit*>().size() == 3,
+            "General settings initially show three locations");
+    for (int i = 4; i <= 10; ++i) {
+        add->click();
+    }
+    require(config.savePathLocationCount() == 10 && !add->isEnabled() &&
+              locations->findChildren<QLineEdit*>().size() == 10,
+            "All ten locations can be added without exceeding the limit");
+    QTemporaryDir destination;
+    require(destination.isValid(), "Save test directory exists");
+    config.setSaveAsFileExtension("png");
+    config.setShowDesktopNotification(false);
+    config.setShowHelp(false);
+    config.setShowMagnifier(false);
+    for (int i = 1; i <= 10; ++i) {
+        const QString folder = destination.path() + QString("/location%1").arg(i);
+        require(QDir().mkpath(folder), "Destination directory created");
+        config.setSavePathLocation(i, folder);
+        const QString name = QString("TYPE_SAVE_LOCATION_%1").arg(i);
+        const QString key = QString("Alt+Shift+%1").arg(i % 10);
+        require(config.setShortcut(name, key), "Every save location is bindable");
+        CaptureRequest request(CaptureRequest::GRAPHICAL_MODE);
+        request.setInitialSelection(QRect(200, 100, 300, 200));
+        QPointer<CaptureWidget> capture = new CaptureWidget(request);
+        capture->show();
+        capture->activateWindow();
+        capture->setFocus();
+        QTest::qWait(50);
+        bool bound = false;
+        for (auto* shortcut : capture->findChildren<QShortcut*>()) {
+            bound |= shortcut->key() == QKeySequence(key);
+        }
+        require(bound, "Save shortcut exists even when toolbar tool is hidden");
+        QTest::keyClick(capture, static_cast<Qt::Key>(Qt::Key_0 + i % 10),
+                        Qt::AltModifier | Qt::ShiftModifier);
+        QTest::qWait(50);
+        QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
+        require(capture.isNull(), "Save shortcut finishes the capture");
+        const QStringList files = QDir(folder).entryList({"*.png"}, QDir::Files);
+        require(files.size() == 1, "Each shortcut saves into its own folder");
+        require(!QImage(folder + "/" + files.first()).isNull(),
+                "Saved file is a valid image");
+    }
+    general.updateComponents();
+    for (int i = 1; i <= 10; ++i) {
+        require(locations->findChildren<QLineEdit*>().at(i - 1)->text() ==
+                  config.savePathLocation(i),
+                "Each configured folder appears in General settings");
+    }
+    ShortcutsWidget shortcuts;
+    auto* table = shortcuts.findChild<QTableWidget*>();
+    require(table != nullptr, "Shortcuts table exists");
+    for (int i = 1; i <= 10; ++i) {
+        require(table->item(i - 1, 0)->text() == QString("Save to loc%1").arg(i),
+                "All ten save actions are listed in Shortcuts");
+        require(table->item(i - 1, 1)->text() == QString("Alt+Shift+%1").arg(i % 10),
+                "Configured shortcuts appear in the table");
+    }
+    qInfo("PASS: three default locations, ten configurable folders and real shortcut saves");
+}
+
 int main(int argc, char** argv)
 {
     QApplication app(argc, argv);
@@ -100,5 +197,6 @@ int main(int argc, char** argv)
     qRegisterMetaType<QList<int>>();
     resolutionSettings();
     resolutionOverlay();
+    saveLocations();
     return 0;
 }
