@@ -33,10 +33,6 @@ GeneralConf::GeneralConf(QWidget* parent)
     // It must be initialized before the checkboxes.
     initScrollArea();
 
-    // Keep the control for hiding selection dimensions near the top, where it
-    // is easy to find while setting up a new profile.
-    initShowSelectionGeometry();
-
     {
         QVBoxLayout* outer = m_scrollAreaLayout;
         QVBoxLayout* group = pushGroupBox(tr("Startup"));
@@ -111,6 +107,7 @@ GeneralConf::GeneralConf(QWidget* parent)
 #ifdef ENABLE_IMGUR
     initUploadClientSecret();
 #endif
+    initShowSelectionGeometry();
 
     m_scrollAreaLayout->addStretch();
 
@@ -947,19 +944,6 @@ void GeneralConf::initShowSelectionGeometry()
     auto* vboxLayout = new QVBoxLayout();
     box->setLayout(vboxLayout);
 
-    auto* infoIcon = new QLabel(this);
-    infoIcon->setPixmap(
-      style()->standardIcon(QStyle::SP_MessageBoxInformation).pixmap(16, 16));
-    infoIcon->setToolTip(
-      tr("Shows the selected area's width and height. Select None to hide "
-         "the dimensions."));
-    auto* infoRow = new QHBoxLayout();
-    infoRow->addWidget(infoIcon);
-    infoRow->addWidget(new QLabel(
-      tr("Choose where the selection dimensions appear."), this));
-    infoRow->addStretch();
-    vboxLayout->addLayout(infoRow);
-
     auto* tobox = new QHBoxLayout();
     int timeout =
       ConfigHandler().value("showSelectionGeometryHideTime").toInt();
@@ -979,8 +963,6 @@ void GeneralConf::initShowSelectionGeometry()
     auto* selGeoLayout = new QHBoxLayout();
     selGeoLayout->addWidget(new QLabel(tr("Display Location")));
     m_selectGeometryLocation = new QComboBox(this);
-    m_selectGeometryLocation->setToolTip(
-      tr("Select None to hide the selection dimensions."));
 
     m_selectGeometryLocation->addItem(tr("None"), GeneralConf::xywh_none);
     m_selectGeometryLocation->addItem(tr("Top Left"),
