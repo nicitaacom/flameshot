@@ -515,6 +515,70 @@ QString ConfigHandler::configFilePath() const
     return m_settings.fileName();
 }
 
+bool ConfigHandler::importConfiguration(const QString& fileName)
+{
+    if (!QFile::exists(fileName)) {
+        return false;
+    }
+
+    QSettings imported(fileName, QSettings::IniFormat);
+    imported.sync();
+    if (imported.status() != QSettings::NoError || imported.allKeys().isEmpty()) {
+        return false;
+    }
+
+    QMap<QString, QVariant> importedValues;
+    for (const QString& key : imported.allKeys()) {
+        importedValues.insert(key, imported.value(key));
+    }
+
+    // Flush pending writes from every live QSettings instance before replacing
+    // their shared settings map. Writing the INI directly leaves stale values
+    // queued in those instances, which can overwrite the imported profile.
+    m_settings.sync();
+
+    QMap<QString, QVariant> currentValues;
+    for (const QString& key : m_settings.allKeys()) {
+        currentValues.insert(key, m_settings.value(key));
+    }
+
+    m_settings.clear();
+    for (auto it = importedValues.cbegin(); it != importedValues.cend(); ++it) {
+        m_settings.setValue(it.key(), it.value());
+    }
+    m_settings.sync();
+
+    QSettings persisted(m_settings.fileName(), QSettings::IniFormat);
+    persisted.sync();
+    bool matchesImportedConfiguration =
+      persisted.status() == QSettings::NoError &&
+      persisted.allKeys().size() == importedValues.size();
+    for (auto it = importedValues.cbegin();
+         matchesImportedConfiguration && it != importedValues.cend();
+         ++it) {
+        matchesImportedConfiguration =
+          persisted.contains(it.key()) &&
+          persisted.value(it.key()) == it.value();
+    }
+
+    if (!matchesImportedConfiguration || !checkForErrors()) {
+        m_settings.clear();
+        for (auto it = currentValues.cbegin(); it != currentValues.cend();
+             ++it) {
+            m_settings.setValue(it.key(), it.value());
+        }
+        m_settings.sync();
+        checkAndHandleError();
+        return false;
+    }
+
+    checkAndHandleError();
+    // Refresh the open settings window immediately; the file watcher may
+    // deliver its notification later.
+    emit getInstance()->fileChanged();
+    return true;
+}
+
 // GENERIC GETTERS AND SETTERS
 
 bool ConfigHandler::setShortcut(const QString& actionName,

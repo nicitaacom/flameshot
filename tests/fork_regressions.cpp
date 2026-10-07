@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "config/generalconf.h"
 #include "config/shortcutswidget.h"
-#include "tools/toolfactory.h"
 #include "core/flameshotdaemon.h"
 #include "utils/confighandler.h"
 #include "widgets/capture/capturewidget.h"
@@ -13,6 +12,10 @@
 #include <QSignalSpy>
 #include <QGroupBox>
 #include <QDir>
+#include <QDateTime>
+#include <QFile>
+#include <QProcess>
+#include <dlfcn.h>
 #include <QLineEdit>
 #include <QPointer>
 #include <QPushButton>
@@ -242,6 +245,122 @@ static void doubleClicks()
     qInfo("PASS: both double-clicks stay open; left copies and honors Save-after-copy");
 }
 
+static void checkImportedProfile()
+{
+    ConfigHandler config;
+    require(config.drawThickness() == 4 && config.jpegQuality() == 73 &&
+              config.undoLimit() == 42 && !config.insecurePixelate(),
+            "Imported drawing and save preferences remain active");
+    require(!config.showSelectionGeometryEnabled() &&
+              config.showSelectionGeometry() == GeneralConf::xywh_top_left &&
+              config.value("showSelectionGeometryHideTime").toInt() == 2700,
+            "Imported resolution preferences remain active");
+    require(config.savePathLocationCount() == 10 &&
+              config.savePathLocation(10).endsWith("/imported-location10") &&
+              config.shortcut("TYPE_SAVE_LOCATION_10") == "Ctrl+Alt+F10",
+            "Imported tenth save location and shortcut remain active");
+    require(!config.hasError(), "Imported profile passes configuration validation");
+}
+
+static void importedProfilePersistence()
+{
+    using SetTime = void (*)(int64_t);
+    auto setTime = reinterpret_cast<SetTime>(dlsym(RTLD_DEFAULT, "setForkTestTime"));
+    require(setTime != nullptr, "Process-local test clock is available");
+    const QDate today(2026, 10, 7);
+    setTime(QDateTime(today, QTime(23, 59, 50)).toSecsSinceEpoch());
+    require(QDateTime::currentDateTime().date() == today &&
+              QTime::currentTime().hour() == 23,
+            "Test begins just before local midnight");
+    ConfigHandler config;
+    ConfigHandler liveSettings;
+    liveSettings.setDrawThickness(19); // Pending write from before the import.
+    GeneralConf general;
+    QObject::connect(ConfigHandler::getInstance(), &ConfigHandler::fileChanged,
+                     &general, &GeneralConf::updateComponents);
+    QSignalSpy refreshed(ConfigHandler::getInstance(), &ConfigHandler::fileChanged);
+    QTemporaryDir fixture;
+    require(fixture.isValid(), "Import fixture directory exists");
+    const QString fileName = fixture.path() + "/profile.ini";
+    {
+        QSettings profile(fileName, QSettings::IniFormat);
+        profile.setValue("drawThickness", 4);
+        profile.setValue("jpegQuality", 73);
+        profile.setValue("undoLimit", 42);
+        profile.setValue("insecurePixelate", false);
+        profile.setValue("disabledTrayIcon", true);
+        profile.setValue("checkForUpdates", false);
+        profile.setValue("showSelectionGeometryEnabled", false);
+        profile.setValue("showSelectionGeometry", GeneralConf::xywh_top_left);
+        profile.setValue("showSelectionGeometryHideTime", 2700);
+        profile.setValue("savePathLocationCount", 10);
+        for (int i = 1; i <= 10; ++i) {
+            profile.setValue(QString("savePathLocation%1").arg(i),
+                             fixture.path() + QString("/imported-location%1").arg(i));
+            profile.setValue(QString("Shortcuts/TYPE_SAVE_LOCATION_%1").arg(i),
+                             QString("Ctrl+Alt+F%1").arg(i));
+        }
+        profile.sync();
+        require(profile.status() == QSettings::NoError, "Profile fixture written");
+    }
+    require(ConfigHandler::getInstance()->importConfiguration(fileName),
+            "Profile import succeeds with existing settings objects");
+    require(!refreshed.isEmpty(), "Successful import refreshes the UI immediately");
+    checkImportedProfile();
+    bool showChecked = true;
+    for (auto* check : general.findChildren<QCheckBox*>()) {
+        if (check->text() == "Show resolution") {
+            showChecked = check->isChecked();
+        }
+    }
+    require(!showChecked, "Imported resolution state appears in the open settings");
+    const auto spins = general.findChildren<QSpinBox*>();
+    bool qualityRefreshed = false, timeoutRefreshed = false;
+    for (auto* spin : spins) {
+        qualityRefreshed |= spin->maximum() == 100 && spin->value() == 73;
+        timeoutRefreshed |= spin->value() == 2700;
+    }
+    require(qualityRefreshed && timeoutRefreshed,
+            "Imported JPEG quality and resolution timeout refresh immediately");
+    setTime(QDateTime(today.addDays(1), QTime(0, 0, 5)).toSecsSinceEpoch());
+    require(QDateTime::currentDateTime().date() == today.addDays(1) &&
+              QTime::currentTime().hour() == 0,
+            "Wall clock crosses local midnight");
+    QTest::qWait(150);
+    liveSettings.setShowHelp(false);
+    QSettings persisted(config.configFilePath(), QSettings::IniFormat);
+    persisted.sync();
+    general.updateComponents();
+    checkImportedProfile();
+    require(persisted.value("drawThickness").toInt() == 4 &&
+              persisted.value("savePathLocation10").toString().endsWith("/imported-location10"),
+            "Pending settings writes do not overwrite the import after midnight");
+    QProcess restarted;
+    restarted.start(QCoreApplication::applicationFilePath(), {"--check-import"});
+    require(restarted.waitForFinished(10000) && restarted.exitCode() == 0 &&
+              restarted.exitStatus() == QProcess::NormalExit,
+            "Imported profile remains active in a fresh process");
+    const QString invalid = fixture.path() + "/invalid.ini";
+    {
+        QSettings profile(invalid, QSettings::IniFormat);
+        profile.setValue("drawThickness", -1);
+    }
+    require(!config.importConfiguration(invalid), "Invalid profile is rejected");
+    checkImportedProfile();
+    const QString empty = fixture.path() + "/empty.ini";
+    QFile emptyFile(empty);
+    require(emptyFile.open(QIODevice::WriteOnly), "Empty fixture created");
+    emptyFile.close();
+    require(!config.importConfiguration(empty), "Empty profile cannot reset settings");
+    require(!config.importConfiguration(fixture.path() + "/missing.ini"),
+            "Missing profile cannot reset settings");
+    checkImportedProfile();
+    require(config.importConfiguration(config.configFilePath()),
+            "Importing the active profile is safe");
+    checkImportedProfile();
+    qInfo("PASS: import refresh, stale writes, midnight, process restart and invalid import rollback");
+}
+
 int main(int argc, char** argv)
 {
     QApplication app(argc, argv);
@@ -249,9 +368,16 @@ int main(int argc, char** argv)
     app.setApplicationName("flameshot");
     app.setQuitOnLastWindowClosed(false);
     qRegisterMetaType<QList<int>>();
+    require(ConfigHandler().configFilePath().startsWith(qEnvironmentVariable("XDG_CONFIG_HOME") + "/"),
+            "Tests use disposable settings");
+    if (app.arguments().contains("--check-import")) {
+        checkImportedProfile();
+        return 0;
+    }
     resolutionSettings();
     resolutionOverlay();
     saveLocations();
     doubleClicks();
+    importedProfilePersistence();
     return 0;
 }

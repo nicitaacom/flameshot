@@ -188,6 +188,7 @@ public:
     QString filenamePatternDefault();
     void setDefaultSettings();
     QString configFilePath() const;
+    bool importConfiguration(const QString& fileName);
 
     // GENERIC GETTERS AND SETTERS
     bool setShortcut(const QString& actionName, const QString& shortcut);

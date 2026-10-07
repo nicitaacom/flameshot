@@ -35,5 +35,8 @@ with tempfile.TemporaryDirectory(prefix="flameshot-regressions-") as directory:
     link_args[link_args.index("-o") + 1] = str(binary)
     link_args = [str(obj) if arg == "src/CMakeFiles/flameshot.dir/main.cpp.o" else arg for arg in link_args]
     subprocess.run(link_args + qt, cwd=build, check=True)
+    clock = work / "clock.so"
+    subprocess.run(["cc", "-shared", "-fPIC", str(root / "tests/fork_test_clock.c"),
+                    "-ldl", "-o", str(clock)], check=True)
     env = dict(os.environ, XDG_CONFIG_HOME=str(work / "config"), XDG_DATA_HOME=str(work / "data"), QT_QPA_PLATFORM="xcb")
-    subprocess.run(["dbus-run-session", "--", "xvfb-run", "-a", str(binary)], env=env, check=True)
+    subprocess.run(["dbus-run-session", "--", "xvfb-run", "-a", "env", "LD_PRELOAD=" + str(clock), str(binary)], env=env, check=True)

@@ -18,7 +18,6 @@
 #include <QSignalBlocker>
 #include <QSpinBox>
 #include <QStandardPaths>
-#include <QStringDecoder>
 #include <QStyle>
 #include <QVBoxLayout>
 
@@ -154,7 +153,13 @@ void GeneralConf::_updateComponents(bool allowEmptySavePath)
     m_showStartupLaunchMessage->setChecked(config.showStartupLaunchMessage());
     m_showQuitPrompt->setChecked(config.showQuitPrompt());
     m_screenshotPathFixedCheck->setChecked(config.savePathFixed());
-    m_undoLimit->setValue(config.undoLimit());
+    m_insecurePixelate->setChecked(config.insecurePixelate());
+    {
+        const QSignalBlocker blockUndo(m_undoLimit);
+        const QSignalBlocker blockQuality(m_jpegQuality);
+        m_undoLimit->setValue(config.undoLimit());
+        m_jpegQuality->setValue(config.jpegQuality());
+    }
 
     if (allowEmptySavePath || !config.savePath().isEmpty()) {
         m_savePath->setText(config.savePath());
@@ -254,23 +259,13 @@ void GeneralConf::importConfiguration()
     if (fileName.isEmpty()) {
         return;
     }
-    QFile file(fileName);
-    if (!file.open(QFile::ReadOnly)) {
-        QMessageBox::about(this, tr("Error"), tr("Unable to read file."));
-        return;
+    if (!ConfigHandler::getInstance()->importConfiguration(fileName)) {
+        QMessageBox::about(
+          this,
+          tr("Error"),
+          tr("Unable to import configuration. The file is invalid or could "
+             "not be written."));
     }
-    QStringDecoder decoder(QStringDecoder::System);
-    QString text = decoder(file.readAll());
-    file.close();
-
-    QFile config(ConfigHandler().configFilePath());
-    if (!config.open(QFile::WriteOnly)) {
-        QMessageBox::about(this, tr("Error"), tr("Unable to write file."));
-        return;
-    }
-    QStringEncoder encoder(QStringEncoder::System);
-    config.write(encoder(text));
-    config.close();
 }
 
 void GeneralConf::exportFileConfiguration()
